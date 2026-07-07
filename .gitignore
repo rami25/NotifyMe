@@ -1,0 +1,36 @@
+# ============================================================
+# Air Liquide Tunisie — Field Action Tracker
+# Monorepo: al-actions-app (Ionic/Angular) + al-actions-server (Express)
+# Patterns below have no leading slash, so they match inside either
+# project folder regardless of depth.
+# ============================================================
+
+# --- Dependencies ---
+node_modules/
+
+# --- Environment / secrets (server) ---
+.env
+.env.local
+*.log
+
+# Google service account credentials — never commit these
+firebase-service-account.json
+sheets-service-account.json
+**/firebase-service-account.json
+**/sheets-service-account.json
+*-service-account.json
+
+# --- Angular / Ionic build output (mobile app) ---
+www/
+dist/
+out-tsc/
+.angular/
+
+# --- Capacitor native platforms (regenerated via `npx cap add`) ---
+android/
+ios/
+
+# --- Editor / OS ---
+.DS_Store
+.vscode/
+*.swp
