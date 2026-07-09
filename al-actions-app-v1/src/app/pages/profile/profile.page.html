@@ -1,0 +1,52 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <al-header-brand title="Profile"></al-header-brand>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="al-profile-content">
+  @if (auth.currentUser(); as user) {
+    <div class="al-profile-card">
+      <div class="al-avatar">{{ user.name.charAt(0) }}</div>
+      <h2>{{ user.name }}</h2>
+      <p class="al-email">
+        <ion-icon name="mail-outline"></ion-icon>
+        {{ user.email }}
+      </p>
+      <span class="al-role-chip">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        {{ user.role === 'admin' ? 'Administrator' : 'Field employee' }}
+      </span>
+    </div>
+
+    <div class="al-profile-stats">
+      <div class="al-stat">
+        <span class="al-stat-value">{{ actionsService.plan().length }}</span>
+        <span class="al-stat-label">Active</span>
+      </div>
+      <div class="al-stat">
+        <span class="al-stat-value al-stat-danger">{{ actionsService.overdueCount() }}</span>
+        <span class="al-stat-label">Overdue</span>
+      </div>
+      <div class="al-stat">
+        <span class="al-stat-value">{{ actionsService.finishedOrCancelled().length }}</span>
+        <span class="al-stat-label">Archived</span>
+      </div>
+    </div>
+
+    @if (user.role === 'admin') {
+      <button class="al-admin-entry-btn" type="button" [routerLink]="['/admin']">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <span>Open admin panel</span>
+        <ion-icon name="chevron-forward-outline" class="al-chevron"></ion-icon>
+      </button>
+    }
+
+    <button class="al-signout-btn" type="button" (click)="confirmSignOut()">
+      <ion-icon name="log-out-outline"></ion-icon>
+      Sign out
+    </button>
+  }
+</ion-content>
+
+<al-bottom-nav [overdueCount]="actionsService.overdueCount()"></al-bottom-nav>

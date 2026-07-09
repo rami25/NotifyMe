@@ -7,6 +7,6 @@ const app = createApp();
 
 app.listen(config.port, () => {
   console.log(`AL Actions API listening on port ${config.port} (${config.nodeEnv})`);
-  startOverdueJob();
-  startSheetSyncPolling();
+//   startOverdueJob();
+//   startSheetSyncPolling();
 });

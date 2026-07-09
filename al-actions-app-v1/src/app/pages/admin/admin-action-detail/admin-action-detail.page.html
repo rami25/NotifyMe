@@ -1,0 +1,113 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/admin/actions" text=""></ion-back-button>
+    </ion-buttons>
+    <al-header-brand title="Action"></al-header-brand>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="al-detail-content">
+  @if (action(); as a) {
+    <div class="al-detail-header">
+      <span class="al-status-chip status-{{ a.status }}">
+        {{ a.status === 'in_progress' ? 'In progress' : (a.status | titlecase) }}
+      </span>
+      <h1>{{ a.title }}</h1>
+      @if (a.description) {
+        <p class="al-detail-desc">{{ a.description }}</p>
+      }
+    </div>
+
+    <div class="al-detail-section">
+      <div class="al-info-row">
+        <ion-icon name="mail-outline"></ion-icon>
+        <div>
+          <span class="al-info-label">Assigned to</span>
+          <span class="al-info-value">{{ a.assignedToEmail }}</span>
+        </div>
+      </div>
+      <div class="al-info-row">
+        <ion-icon name="person-outline"></ion-icon>
+        <div>
+          <span class="al-info-label">Customer</span>
+          <span class="al-info-value">{{ a.customerName }} @if (a.customerRef) { · {{ a.customerRef }} }</span>
+        </div>
+      </div>
+      <div class="al-info-row">
+        <ion-icon name="location-outline"></ion-icon>
+        <div>
+          <span class="al-info-label">Address</span>
+          <span class="al-info-value">{{ a.address }}</span>
+        </div>
+      </div>
+      <div class="al-info-row">
+        <ion-icon name="time-outline"></ion-icon>
+        <div>
+          <span class="al-info-label">Deadline</span>
+          <span class="al-info-value">{{ a.deadline | date:'EEEE, MMM d · HH:mm' }}</span>
+        </div>
+      </div>
+      <div class="al-info-row">
+        <ion-icon name="pricetag-outline"></ion-icon>
+        <div>
+          <span class="al-info-label">Priority</span>
+          <span class="al-info-value al-priority-label priority-{{ a.priority }}">{{ a.priority | titlecase }}</span>
+        </div>
+      </div>
+      @if (a.status === 'cancelled' && a.cancelReason) {
+        <div class="al-info-row">
+          <ion-icon name="close-circle-outline"></ion-icon>
+          <div>
+            <span class="al-info-label">Cancel reason</span>
+            <span class="al-info-value">{{ a.cancelReason }}</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="al-detail-section">
+      <h2 class="al-section-title">
+        <ion-icon name="document-text-outline"></ion-icon>
+        History
+      </h2>
+      <div class="al-timeline">
+        @for (entry of a.statusHistory; track entry.changedAt) {
+          <div class="al-timeline-item">
+            <span class="al-timeline-dot status-{{ entry.status }}"></span>
+            <div>
+              <span class="al-timeline-status">{{ entry.status === 'in_progress' ? 'In progress' : (entry.status | titlecase) }}</span>
+              <span class="al-timeline-meta">{{ entry.changedAt | date:'MMM d, HH:mm' }} · {{ entry.changedBy === 'system' ? 'Automatic' : entry.changedBy }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (showCancelForm()) {
+      <div class="al-cancel-panel">
+        <h3>Cancel this action</h3>
+        <p>{{ a.assignedToEmail }} will be notified by push that you cancelled it.</p>
+        <ion-textarea
+          [(ngModel)]="cancelReason"
+          placeholder="Optional reason"
+          [autoGrow]="true"
+          rows="3">
+        </ion-textarea>
+        <div class="al-cancel-actions">
+          <button class="al-btn al-btn-ghost" type="button" (click)="showCancelForm.set(false)">Back</button>
+          <button class="al-btn al-btn-danger" type="button" [disabled]="busy()" (click)="submitCancel()">
+            Confirm cancel
+          </button>
+        </div>
+      </div>
+    } @else if (isCancellable) {
+      <div class="al-detail-actions">
+        <button class="al-btn al-btn-outline-danger" type="button" [disabled]="busy()" (click)="showCancelForm.set(true)">
+          <ion-icon name="close-circle-outline"></ion-icon>
+          Cancel this action
+        </button>
+      </div>
+    }
+  }
+</ion-content>

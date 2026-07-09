@@ -1,0 +1,107 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/admin/actions" text=""></ion-back-button>
+    </ion-buttons>
+    <al-header-brand title="New Action"></al-header-brand>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="al-form-content">
+  <div class="al-form-section">
+    <ion-item lines="full" class="al-form-item">
+      <ion-label position="stacked">Title *</ion-label>
+      <ion-input
+        [value]="draft().title"
+        (ionInput)="update('title', $any($event.target).value || '')"
+        placeholder="e.g. Deliver replacement cylinder">
+      </ion-input>
+    </ion-item>
+
+    <ion-item lines="full" class="al-form-item">
+      <ion-label position="stacked">Description</ion-label>
+      <ion-textarea
+        [value]="draft().description"
+        (ionInput)="update('description', $any($event.target).value || '')"
+        [autoGrow]="true"
+        rows="2"
+        placeholder="Optional details">
+      </ion-textarea>
+    </ion-item>
+  </div>
+
+  <div class="al-form-section">
+    <ion-item lines="full" class="al-form-item">
+      <ion-label position="stacked">Customer name *</ion-label>
+      <ion-input
+        [value]="draft().customerName"
+        (ionInput)="update('customerName', $any($event.target).value || '')"
+        placeholder="Patient / customer name">
+      </ion-input>
+    </ion-item>
+
+    <ion-item lines="full" class="al-form-item">
+      <ion-label position="stacked">Customer reference</ion-label>
+      <ion-input
+        [value]="draft().customerRef"
+        (ionInput)="update('customerRef', $any($event.target).value || '')"
+        placeholder="e.g. Navision reference">
+      </ion-input>
+    </ion-item>
+
+    <ion-item lines="full" class="al-form-item">
+      <ion-label position="stacked">Address *</ion-label>
+      <ion-input
+        [value]="draft().address"
+        (ionInput)="update('address', $any($event.target).value || '')"
+        placeholder="Full address">
+      </ion-input>
+    </ion-item>
+  </div>
+
+  <div class="al-form-section">
+    <ion-item lines="full" class="al-form-item">
+      <ion-label position="stacked">Assign to *</ion-label>
+      <ion-select
+        [value]="draft().assignedToEmail"
+        (ionChange)="update('assignedToEmail', $any($event.detail.value))"
+        placeholder="Select an employee"
+        interface="action-sheet">
+        @for (employee of activeEmployees; track employee.email) {
+          <ion-select-option [value]="employee.email">{{ employee.name }} · {{ employee.email }}</ion-select-option>
+        }
+      </ion-select>
+    </ion-item>
+
+    <ion-item lines="full" class="al-form-item">
+      <ion-label position="stacked">Priority</ion-label>
+      <ion-select
+        [value]="draft().priority"
+        (ionChange)="update('priority', $any($event.detail.value))"
+        interface="action-sheet">
+        <ion-select-option value="high">High</ion-select-option>
+        <ion-select-option value="medium">Medium</ion-select-option>
+        <ion-select-option value="low">Low</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item lines="full" class="al-form-item">
+      <ion-label position="stacked">Deadline *</ion-label>
+      <ion-input
+        type="datetime-local"
+        [value]="draft().deadline"
+        (ionInput)="update('deadline', $any($event.target).value || '')">
+      </ion-input>
+    </ion-item>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="al-form-error">{{ errorMessage() }}</p>
+  }
+
+  <div class="al-form-actions">
+    <button class="al-btn al-btn-primary" type="button" [disabled]="submitting() || !isValid" (click)="submit()">
+      {{ submitting() ? 'Creating…' : 'Create & assign' }}
+    </button>
+  </div>
+</ion-content>

@@ -1,0 +1,74 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <al-header-brand title="All Actions"></al-header-brand>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      placeholder="Search title, customer, employee…"
+      [debounce]="200"
+      (ionInput)="searchTerm.set($any($event).detail.value || '')">
+    </ion-searchbar>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-segment
+      [value]="statusFilter()"
+      (ionChange)="statusFilter.set($any($event.detail.value))"
+      scrollable>
+      <ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button>
+      <ion-segment-button value="in_progress"><ion-label>Active</ion-label></ion-segment-button>
+      <ion-segment-button value="postponed"><ion-label>Overdue</ion-label></ion-segment-button>
+      <ion-segment-button value="finished"><ion-label>Finished</ion-label></ion-segment-button>
+      <ion-segment-button value="cancelled"><ion-label>Cancelled</ion-label></ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="al-board-content">
+  @if (admin.loadingActions() && admin.actions().length === 0) {
+    <div class="al-board-list">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="al-board-row al-skeleton">
+          <ion-skeleton-text [animated]="true" style="width: 60%; height: 14px;"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" style="width: 40%; height: 11px; margin-top: 6px;"></ion-skeleton-text>
+        </div>
+      }
+    </div>
+  } @else if (filtered().length === 0) {
+    <div class="al-empty-state">
+      <ion-icon name="file-tray-outline"></ion-icon>
+      <h3>No actions match</h3>
+      <p>Try a different filter or search term.</p>
+    </div>
+  } @else {
+    <div class="al-board-list">
+      @for (action of filtered(); track action.id) {
+        <button class="al-board-row" type="button" (click)="openAction(action)">
+          <span class="al-priority-stripe priority-{{ action.priority }}"></span>
+          <div class="al-board-body">
+            <div class="al-board-top">
+              <h3>{{ action.title }}</h3>
+              <span class="al-status-chip status-{{ action.status }}">
+                {{ action.status === 'in_progress' ? 'In progress' : (action.status | titlecase) }}
+              </span>
+            </div>
+            <p class="al-board-meta">
+              {{ action.customerName }} · {{ action.assignedToEmail }}
+            </p>
+            <p class="al-board-meta">
+              Due {{ action.deadline | date:'MMM d, HH:mm' }}
+            </p>
+          </div>
+          <ion-icon class="al-chevron" name="chevron-forward-outline"></ion-icon>
+        </button>
+      }
+    </div>
+  }
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="goToNewAction()" color="primary">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>
+
+<al-admin-nav [overdueCount]="admin.overdueCount()"></al-admin-nav>

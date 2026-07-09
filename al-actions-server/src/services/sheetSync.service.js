@@ -3,13 +3,6 @@ import { google } from 'googleapis';
 import { config } from '../config/env.js';
 import { query } from '../db/pool.js';
 
-/**
- * The Sheet is a permanent ingestion boundary, not a temporary stepping
- * stone (per the spec): upstream sources like Navision write rows here,
- * and this sync pulls them into the actions table one-way. Status
- * changes made afterward never get written back into the Sheet.
- */
-
 let sheetsClient = null;
 
 function getSheetsClient() {
@@ -40,17 +33,12 @@ async function resolveAssigneeEmail(rawValue) {
     email = `${adUsername}@${config.allowedGoogleDomain}`.toLowerCase();
   }
 
-  // Already known — either signed in before, or ingested from an earlier
-  // Sheet row referencing the same person — reuse that row untouched.
   const { rows: existing } = await query(
     'SELECT email FROM users WHERE email = $1 OR ad_username = $2',
     [email, adUsername]
   );
   if (existing[0]) return existing[0].email;
 
-  // Unknown employee: auto-provision a minimal placeholder so the action
-  // is still assigned rather than skipped. role defaults to 'employee'
-  // and active defaults to true (see schema.sql).
   await query(
     `INSERT INTO users (email, name, ad_username)
      VALUES ($1, $2, $3)
@@ -74,11 +62,6 @@ function parseDeadline(raw) {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
-/**
- * Pulls new rows and inserts any not already ingested (source_row_id is
- * unique, so re-running this is always safe). Returns a small summary
- * for logging/manual runs.
- */
 export async function syncOnce() {
   const sheets = getSheetsClient();
   const { data } = await sheets.spreadsheets.values.get({
@@ -87,12 +70,12 @@ export async function syncOnce() {
   });
 
   const rows = data.values || [];
-  if (rows.length > 0 && (rows[0][0] === 'N°' || rows[0][1] === 'ACTION')) {
+  if (rows.length > 0 && (rows[0][0] === 'N°' || rows[0][1] === 'ACTION')) { // pass the header
     rows.shift();
   }
   const summary = { seen: rows.length, inserted: 0, skippedExisting: 0, skippedInvalid: 0 };
 
-  let i = 1;
+  let i = 1; // just for debugging
   for (const row of rows) {
     if (i > 10) break;
     console.log("new___id", i);
@@ -130,19 +113,18 @@ export async function syncOnce() {
       continue;
     }
 
-    // 4. Synthesize a description field using helpful metadata from the spreadsheet
     const description = `Patient Code: ${patientCode || 'N/A'} | Tel: ${phone || 'N/A'}`;
 
-    // 5. Database execution
     const { rows: inserted } = await query(
       `INSERT INTO actions
-         (title, description, customer_name, address, assigned_to_email, priority, deadline, source, source_row_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'sheet', $8)
+         (title, description, customer_name, customer_ref, address, assigned_to_email, priority, deadline, source, source_row_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'system', $9)
        RETURNING id`,
       [
         title, 
         description, 
         customerName || 'Unknown Patient', 
+        patientCode || 'No customer_ref',
         address || 'No Address Provided', 
         assignedToEmail, 
         parsePriority(priorityRaw), 
@@ -151,7 +133,6 @@ export async function syncOnce() {
       ]
     );
 
-    // 6. Log the initial pipeline event inside your history table
     await query(
       `INSERT INTO action_status_history (action_id, status, changed_by_kind)
        VALUES ($1, 'in_progress', 'system')`,
@@ -163,7 +144,6 @@ export async function syncOnce() {
   return summary;
 }
 
-/** Starts the periodic poll. Call once at server boot if Sheet sync is configured. */
 export function startSheetSyncPolling() {
   if (!config.googleSheets.sheetId || !config.googleSheets.serviceAccountPath) {
     console.log('Sheet sync not configured (GOOGLE_SHEETS_ID / service account missing) — skipping.');
