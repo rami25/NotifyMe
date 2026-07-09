@@ -1,0 +1,102 @@
+/* Core Ionic CSS */
+@import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+@import "./theme/variables.scss";
+
+body {
+  font-family: var(--al-font);
+}
+
+// Header logo lockup used on every toolbar
+.al-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  img {
+    height: 26px;
+    width: auto;
+  }
+
+  span {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--al-ink);
+    letter-spacing: 0.2px;
+  }
+}
+
+// Priority stripe + status system used across action cards
+.al-priority-stripe {
+  width: 5px;
+  border-radius: 4px;
+  align-self: stretch;
+  flex-shrink: 0;
+
+  &.priority-high { background: var(--al-priority-high); }
+  &.priority-medium { background: var(--al-priority-medium); }
+  &.priority-low { background: var(--al-priority-low); }
+}
+
+.al-status-chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+
+  &.status-in_progress {
+    background: rgba(55, 95, 155, 0.12);
+    color: var(--al-status-in-progress);
+  }
+  &.status-finished {
+    background: rgba(28, 138, 82, 0.12);
+    color: var(--al-status-finished);
+  }
+  &.status-cancelled {
+    background: rgba(138, 147, 163, 0.15);
+    color: var(--al-status-cancelled);
+  }
+  &.status-postponed {
+    background: rgba(215, 0, 30, 0.1);
+    color: var(--al-status-postponed);
+  }
+}
+
+.al-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 32px;
+  color: var(--al-ink-soft);
+
+  ion-icon {
+    font-size: 44px;
+    color: var(--al-hairline);
+    margin-bottom: 12px;
+  }
+
+  h3 {
+    color: var(--al-ink);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  p {
+    font-size: 13px;
+    margin: 0;
+  }
+}

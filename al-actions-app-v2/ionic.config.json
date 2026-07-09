@@ -1,0 +1,7 @@
+{
+  "name": "al-actions-app",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

@@ -12,10 +12,10 @@ async function runOverdueSweep() {
 
   for (const action of postponed) {
     const pushToken = await getPushToken(action.assigned_to_email);
-    notifyEmployeeActionPostponed(
-      { id: action.id, title: action.title },
-      pushToken
-    );
+    // notifyEmployeeActionPostponed(
+    //   { id: action.id, title: action.title },
+    //   pushToken
+    // );
   }
 }
 

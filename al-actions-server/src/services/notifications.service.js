@@ -75,6 +75,51 @@ export async function notifyEmployeeAssigned(action) {
   });
 }
 
+// Notify an employee that a task they were working on has been handed over
+export async function notifyActionUnassigned(email, actionTitle) {
+  await sendEmail({
+    to: email,
+    subject: `Action Reassigned: ${actionTitle}`,
+    text: `The action "${actionTitle}" has been unassigned from you and reassigned to another team member by an administrator.`
+  });
+}
+
+// Notify an employee that a task they own had metadata modifications
+export async function notifyActionUpdated(action) {
+  await sendEmail({
+    to: action.assignedToEmail,
+    subject: `Action Updated: ${action.title}`,
+    text: `An administrator has updated details for your assigned action: "${action.title}" for ${action.customerName}. Please review your schedule.`
+  });
+}
+
+/** Admin edited an action's details without reassigning it. */
+export async function notifyEmployeeActionUpdated(action, deviceToken) {
+  await sendPush({
+    token: deviceToken,
+    title: 'Action updated',
+    body: `An admin updated the details of "${action.title}".`,
+    data: { actionId: action.id }
+  });
+}
+
+export async function notifyActionDeleted(action) {
+  await sendEmail({
+    to: action.assigned_to_email,
+    subject: `Action Removed: ${action.title}`,
+    text: `The action "${action.title}" for ${action.customer_name} has been removed from your list by an administrator.`
+  });
+}
+
+export async function notifyEmployeeActionRemoved(action, deviceToken) {
+  await sendPush({
+    token: deviceToken,
+    title: 'Action removed',
+    body: `"${action.title}" was removed by an admin.`,
+    data: { actionId: action.id }
+  });
+}
+
 export async function notifyAdminsActionFinished(action) {
   await sendEmail({
     to: config.adminNotificationEmails,

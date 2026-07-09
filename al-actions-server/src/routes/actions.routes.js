@@ -6,14 +6,19 @@ import {
   getActionForUser,
   finishAction,
   cancelAction,
-  createAction
+  createAction,
+  updateAction,
+  deleteAction
 } from '../services/actions.repository.js';
 import { findByEmail, getPushToken } from '../services/users.repository.js';
 import {
   notifyAdminsActionFinished,
   notifyAdminsActionCancelledByEmployee,
   notifyEmployeeActionCancelledByAdmin,
-  notifyEmployeeAssigned
+  notifyEmployeeAssigned,
+  notifyActionUnassigned,
+  notifyActionUpdated,
+  notifyActionDeleted
 } from '../services/notifications.service.js';
 
 export const actionsRouter = Router();
@@ -77,6 +82,59 @@ actionsRouter.post(
     });
 
     res.status(201).json(action);
+  })
+);
+
+/** Admin-only: Update Action **/
+actionsRouter.patch(
+  '/:id',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    // Normalize target email formatting if present
+    if (req.body.assignedToEmail) {
+      const assignee = await findByEmail(req.body.assignedToEmail.toLowerCase());
+      if (!assignee || !assignee.active) {
+        throw new HttpError(400, 'assignedToEmail must be an active user');
+      }
+      req.body.assignedToEmail = assignee.email; // uniform formatting matching DB string
+    }
+
+    const result = await updateAction(req.params.id, req.body, req.user);
+    if (!result) throw new HttpError(404, 'Action not found');
+
+    const { updatedAction, oldAssignedToEmail } = result;
+
+    // Condition A: Employee Assignment Swapped
+    if (req.body.assignedToEmail && req.body.assignedToEmail !== oldAssignedToEmail) {
+      // 1. Notify old employee
+      notifyActionUnassigned(oldAssignedToEmail, updatedAction.title);
+      
+      // 2. Notify new employee (Using your existing utility function)
+      notifyEmployeeAssigned({
+        title: updatedAction.title,
+        customer_name: updatedAction.customerName,
+        assigned_to_email: updatedAction.assignedToEmail,
+        deadline: updatedAction.deadline
+      });
+      
+    } else {
+      notifyActionUpdated(updatedAction);
+    }
+
+    res.json(updatedAction);
+  })
+);
+
+actionsRouter.delete(
+  '/:id',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const removed = await deleteAction(req.params.id);
+    if (!removed) throw new HttpError(404, 'Action not found');
+    notifyActionDeleted(removed); // via E-Mail
+    const pushToken = await getPushToken(removed.assigned_to_email);
+    notifyEmployeeActionRemoved({ id: removed.id, title: removed.title }, pushToken);
+    res.status(204).end(); // 204 No Content matches your client return typing
   })
 );
 

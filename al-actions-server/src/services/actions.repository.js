@@ -172,6 +172,78 @@ export async function createAction(input, admin) {
   return toApiShape(row, await fetchHistoryStandalone(row.id));
 }
 
+/** Admin-Only: Update an action. Tracks assignee shifts and status history. */
+export async function updateAction(id, input, admin) {
+  const currentRes = await query(
+    'SELECT status, assigned_to_email FROM actions WHERE id = $1', 
+    [id]
+  );
+  if (currentRes.rows.length === 0) return null;
+  
+  const oldStatus = currentRes.rows[0].status;
+  const oldAssignedToEmail = currentRes.rows[0].assigned_to_email;
+
+  // 2. Perform the update
+  const { rows } = await query(
+    `UPDATE actions
+     SET title = COALESCE($2, title),
+         description = COALESCE($3, description),
+         customer_name = COALESCE($4, customer_name),
+         customer_ref = COALESCE($5, customer_ref),
+         address = COALESCE($6, address),
+         assigned_to_email = COALESCE($7, assigned_to_email),
+         priority = COALESCE($8, priority),
+         deadline = COALESCE($9, deadline),
+         status = COALESCE($10, status),
+         cancel_reason = CASE WHEN $10 = 'cancelled' THEN COALESCE($11, cancel_reason) ELSE null END
+     WHERE id = $1
+     RETURNING ${ACTION_COLUMNS}`,
+    [
+      id,
+      input.title,
+      input.description,
+      input.customerName,
+      input.customerRef,
+      input.address,
+      input.assignedToEmail,
+      input.priority,
+      input.deadline,
+      input.status,
+      input.cancelReason
+    ]
+  );
+
+  const row = rows[0];
+  if (!row) return null;
+
+  // 3. Log history if the status changed
+  if (input.status && input.status !== oldStatus) {
+    await query(
+      `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
+       VALUES ($1, $2, $3, 'admin')`,
+      [id, row.status, admin.email]
+    );
+  }
+
+  // Return both the mapped modern model and the tracking context
+  return {
+    updatedAction: toApiShape(row, await fetchHistoryStandalone(row.id)),
+    oldAssignedToEmail
+  };
+}
+
+/** Admin-Only: Hard delete an action and return its metadata before it vanishes for notifications */
+export async function deleteAction(id) {
+  const { rows: existing } = await query(
+    'SELECT id, title, assigned_to_email, customer_name FROM actions WHERE id = $1',
+    [id]
+  );
+  if (existing.length === 0) return null;
+  await query('DELETE FROM action_status_history WHERE action_id = $1', [id]);
+  await query('DELETE FROM actions WHERE id = $1', [id]);
+  return existing[0];
+}
+
 /** Used by the overdue job: flips in_progress -> postponed past deadline. Returns affected rows. */
 export async function sweepOverdueActions() {
   const { rows } = await query(

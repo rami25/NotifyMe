@@ -117,12 +117,3 @@ A few things are stubbed and need real values:
 - `al-header-brand` and `al-bottom-nav` are small shared standalone
   components reused across the four post-login screens so the logo lockup
   and navigation stay consistent.
-
-
-
-
-### log in changing between versions : 
-main.ts
-index.ts
-auth.service.ts
-environement.ts
