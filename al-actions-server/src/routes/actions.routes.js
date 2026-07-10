@@ -90,38 +90,46 @@ actionsRouter.patch(
   '/:id',
   requireAdmin,
   asyncHandler(async (req, res) => {
-    // Normalize target email formatting if present
-    if (req.body.assignedToEmail) {
-      const assignee = await findByEmail(req.body.assignedToEmail.toLowerCase());
+    const { title, description, customerName, customerRef, address, assignedToEmail, priority, deadline } =
+      req.body;
+
+    let normalizedAssignee;
+    if (assignedToEmail) {
+      const assignee = await findByEmail(assignedToEmail.toLowerCase());
       if (!assignee || !assignee.active) {
         throw new HttpError(400, 'assignedToEmail must be an active user');
       }
-      req.body.assignedToEmail = assignee.email; // uniform formatting matching DB string
+      normalizedAssignee = assignee.email;
     }
 
-    const result = await updateAction(req.params.id, req.body, req.user);
-    if (!result) throw new HttpError(404, 'Action not found');
+    const { action, reassigned, statusChanged, previousAssignee } = await updateAction(
+      req.params.id,
+      { title, description, customerName, customerRef, address, assignedToEmail: normalizedAssignee, priority, deadline },
+      req.user
+    );
 
-    const { updatedAction, oldAssignedToEmail } = result;
-
-    // Condition A: Employee Assignment Swapped
-    if (req.body.assignedToEmail && req.body.assignedToEmail !== oldAssignedToEmail) {
-      // 1. Notify old employee
-      notifyActionUnassigned(oldAssignedToEmail, updatedAction.title);
-      
-      // 2. Notify new employee (Using your existing utility function)
-      notifyEmployeeAssigned({
-        title: updatedAction.title,
-        customer_name: updatedAction.customerName,
-        assigned_to_email: updatedAction.assignedToEmail,
-        deadline: updatedAction.deadline
-      });
-      
+    if (reassigned) {
+    //   notifyActionUnassigned(previousAssignee, action.title);
+    //   notifyEmployeeAssigned({
+    //     title: action.title,
+    //     customer_name: action.customerName,
+    //     assigned_to_email: action.assignedToEmail,
+    //     deadline: action.deadline
+    //   });
+    } else if (statusChanged && action.status === 'in_progress') {
+    //   notifyActionUpdated(action);
+    //   const pushToken = await getPushToken(action.assignedToEmail);
+    //   notifyEmployeeActionUpdated(
+    //     { id: action.id, title: `${action.title} — deadline extended, back to In progress` },
+    //     pushToken
+    //   );
     } else {
-      notifyActionUpdated(updatedAction);
+    //   notifyActionUpdated(action);
+    //   const pushToken = await getPushToken(action.assignedToEmail);
+    //   notifyEmployeeActionUpdated({ id: action.id, title: action.title }, pushToken);
     }
 
-    res.json(updatedAction);
+    res.json(action);
   })
 );
 
@@ -132,8 +140,8 @@ actionsRouter.delete(
     const removed = await deleteAction(req.params.id);
     if (!removed) throw new HttpError(404, 'Action not found');
     notifyActionDeleted(removed); // via E-Mail
-    const pushToken = await getPushToken(removed.assigned_to_email);
-    notifyEmployeeActionRemoved({ id: removed.id, title: removed.title }, pushToken);
+    // const pushToken = await getPushToken(removed.assigned_to_email);
+    // notifyEmployeeActionRemoved({ id: removed.id, title: removed.title }, pushToken);
     res.status(204).end(); // 204 No Content matches your client return typing
   })
 );

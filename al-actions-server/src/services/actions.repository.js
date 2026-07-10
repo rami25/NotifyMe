@@ -147,10 +147,12 @@ export async function cancelAction(actionId, actor, reason) {
 
 /** Admin-only: create and assign a new action directly (the other of the two intake paths). */
 export async function createAction(input, admin) {
+  const deadlineIsFuture = new Date(input.deadline).getTime() > Date.now();
+  const newStatus = deadlineIsFuture ? 'in_progress' : 'postponed';
   const { rows } = await query(
     `INSERT INTO actions
-       (title, description, customer_name, customer_ref, address, assigned_to_email, priority, deadline, source)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'admin')
+       (title, description, customer_name, customer_ref, address, assigned_to_email, priority, status, deadline, source)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'admin')
      RETURNING ${ACTION_COLUMNS}`,
     [
       input.title,
@@ -160,76 +162,95 @@ export async function createAction(input, admin) {
       input.address,
       input.assignedToEmail,
       input.priority || 'medium',
+      newStatus,
       input.deadline
     ]
   );
   const row = rows[0];
   await query(
     `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
-     VALUES ($1, 'in_progress', $2, 'admin')`,
-    [row.id, admin.email]
+     VALUES ($1, $2, $3, 'admin')`,
+    [row.id, newStatus, admin.email]
   );
   return toApiShape(row, await fetchHistoryStandalone(row.id));
 }
 
 /** Admin-Only: Update an action. Tracks assignee shifts and status history. */
-export async function updateAction(id, input, admin) {
-  const currentRes = await query(
-    'SELECT status, assigned_to_email FROM actions WHERE id = $1', 
-    [id]
-  );
-  if (currentRes.rows.length === 0) return null;
-  
-  const oldStatus = currentRes.rows[0].status;
-  const oldAssignedToEmail = currentRes.rows[0].assigned_to_email;
+export async function updateAction(actionId, patch, admin) {
+  return withTransaction(async client => {
+    const row = await loadActionRowForUpdate(client, actionId);
+    if (!row) throw new HttpError(404, 'Action not found');
 
-  // 2. Perform the update
-  const { rows } = await query(
-    `UPDATE actions
-     SET title = COALESCE($2, title),
-         description = COALESCE($3, description),
-         customer_name = COALESCE($4, customer_name),
-         customer_ref = COALESCE($5, customer_ref),
-         address = COALESCE($6, address),
-         assigned_to_email = COALESCE($7, assigned_to_email),
-         priority = COALESCE($8, priority),
-         deadline = COALESCE($9, deadline),
-         status = COALESCE($10, status),
-         cancel_reason = CASE WHEN $10 = 'cancelled' THEN COALESCE($11, cancel_reason) ELSE null END
-     WHERE id = $1
-     RETURNING ${ACTION_COLUMNS}`,
-    [
-      id,
-      input.title,
-      input.description,
-      input.customerName,
-      input.customerRef,
-      input.address,
-      input.assignedToEmail,
-      input.priority,
-      input.deadline,
-      input.status,
-      input.cancelReason
-    ]
-  );
+    const next = {
+      title: patch.title ?? row.title,
+      description: patch.description ?? row.description,
+      customer_name: patch.customerName ?? row.customer_name,
+      customer_ref: patch.customerRef ?? row.customer_ref,
+      address: patch.address ?? row.address,
+      assigned_to_email: patch.assignedToEmail ?? row.assigned_to_email,
+      priority: patch.priority ?? row.priority,
+      deadline: patch.deadline ?? row.deadline
+    };
 
-  const row = rows[0];
-  if (!row) return null;
+    // Terminal states (finished/cancelled) are never touched by an edit —
+    // only in_progress/postponed are live enough to be reclassified by a
+    // deadline change. Comparing against the NEW deadline, not the old one:
+    //   postponed  + new deadline now in the future -> back to in_progress
+    //   in_progress + new deadline now in the past   -> immediately postponed
+    //     (rather than waiting for the next overdue sweep)
+    let nextStatus = row.status;
+    const deadlineIsFuture = new Date(next.deadline).getTime() > Date.now();
+    if (row.status === 'postponed' && deadlineIsFuture) {
+      nextStatus = 'in_progress';
+    } else if (row.status === 'in_progress' && !deadlineIsFuture) {
+      nextStatus = 'postponed';
+    }
+    const statusChanged = nextStatus !== row.status;
 
-  // 3. Log history if the status changed
-  if (input.status && input.status !== oldStatus) {
-    await query(
-      `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
-       VALUES ($1, $2, $3, 'admin')`,
-      [id, row.status, admin.email]
+    await client.query(
+      `UPDATE actions SET
+         title = $2, description = $3, customer_name = $4, customer_ref = $5,
+         address = $6, assigned_to_email = $7, priority = $8, deadline = $9,
+         status = $10
+       WHERE id = $1`,
+      [
+        actionId, next.title, next.description, next.customer_name, next.customer_ref,
+        next.address, next.assigned_to_email, next.priority, next.deadline, nextStatus
+      ]
     );
-  }
 
-  // Return both the mapped modern model and the tracking context
-  return {
-    updatedAction: toApiShape(row, await fetchHistoryStandalone(row.id)),
-    oldAssignedToEmail
-  };
+    const reassigned = next.assigned_to_email !== row.assigned_to_email;
+    if (reassigned) {
+      // Reassignment is meaningful enough to show up in the audit trail
+      // even when the status itself didn't change.
+      await client.query(
+        `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
+         VALUES ($1, $2, $3, 'admin')`,
+        [actionId, nextStatus, admin.email]
+      );
+    }
+    if (statusChanged) {
+      // Reclassification triggered by the admin's edit — attributed to
+      // them (not 'system'), since the automatic sweep didn't do this.
+      await client.query(
+        `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
+         VALUES ($1, $2, $3, 'admin')`,
+        [actionId, nextStatus, admin.email]
+      );
+    }
+
+    const history = await client.query(
+      'SELECT status, changed_by_email, changed_by_kind, changed_at FROM action_status_history WHERE action_id = $1 ORDER BY changed_at ASC',
+      [actionId]
+    );
+
+    return {
+      action: toApiShape({ ...row, ...next, status: nextStatus }, history.rows),
+      reassigned,
+      statusChanged,
+      previousAssignee: reassigned ? row.assigned_to_email : null
+    };
+  });
 }
 
 /** Admin-Only: Hard delete an action and return its metadata before it vanishes for notifications */
