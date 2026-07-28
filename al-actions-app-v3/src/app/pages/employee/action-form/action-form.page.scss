@@ -1,0 +1,27 @@
+.al-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.al-form-error {
+  margin-top: 12px;
+  color: var(--ion-color-danger);
+}
+
+.al-form-actions {
+  margin-top: 16px;
+}
+
+.al-btn {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-weight: 600;
+}
+
+.al-btn-primary {
+  background: var(--al-blue);
+  color: white;
+}

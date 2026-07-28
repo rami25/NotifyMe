@@ -150,13 +150,14 @@ export async function cancelAction(actionId, actor, reason) {
 }
 
 /** Admin-only: create and assign a new action directly (the other of the two intake paths). */
-export async function createAction(input, admin) {
+export async function createAction(input, actor) {
   const deadlineIsFuture = new Date(input.deadline).getTime() > Date.now();
   const newStatus = deadlineIsFuture ? 'in_progress' : 'postponed';
+  const source = actor.role === 'admin' ? 'admin' : 'employee';
   const { rows } = await query(
     `INSERT INTO actions
        (title, description, customer_name, customer_ref, address, assigned_to_email, priority, status, deadline, source)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'admin')
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING ${ACTION_COLUMNS}`,
     [
       input.title,
@@ -167,23 +168,30 @@ export async function createAction(input, admin) {
       input.assignedToEmail,
       input.priority || 'medium',
       newStatus,
-      input.deadline
+      input.deadline,
+      source
     ]
   );
   const row = rows[0];
   await query(
     `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
-     VALUES ($1, $2, $3, 'admin')`,
-    [row.id, newStatus, admin.email]
+     VALUES ($1, $2, $3, $4)`,
+    [row.id, newStatus, actor.email, actor.role]
   );
   return toApiShape(row, await fetchHistoryStandalone(row.id));
 }
 
 /** Admin-Only: Update an action. Tracks assignee shifts and status history. */
-export async function updateAction(actionId, patch, admin) {
+export async function updateAction(actionId, patch, actor) {
   return withTransaction(async client => {
     const row = await loadActionRowForUpdate(client, actionId);
     if (!row) throw new HttpError(404, 'Action not found');
+    if (actor.role !== 'admin' && row.assigned_to_email !== actor.email) {
+      throw new HttpError(403, 'You can only edit actions assigned to you');
+    }
+    if (actor.role !== 'admin' && !['in_progress', 'postponed'].includes(row.status)) {
+      throw new HttpError(409, `Action is already ${row.status}`);
+    }
 
     const next = {
       title: patch.title ?? row.title,
@@ -232,8 +240,8 @@ export async function updateAction(actionId, patch, admin) {
       // even when the status itself didn't change.
       await client.query(
         `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
-         VALUES ($1, $2, $3, 'admin')`,
-        [actionId, nextStatus, admin.email]
+         VALUES ($1, $2, $3, $4)`,
+        [actionId, nextStatus, actor.email, actor.role]
       );
     }
     if (statusChanged) {
@@ -241,8 +249,8 @@ export async function updateAction(actionId, patch, admin) {
       // them (not 'system'), since the automatic sweep didn't do this.
       await client.query(
         `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
-         VALUES ($1, $2, $3, 'admin')`,
-        [actionId, nextStatus, admin.email]
+         VALUES ($1, $2, $3, $4)`,
+        [actionId, nextStatus, actor.email, actor.role]
       );
     }
 
@@ -279,6 +287,9 @@ export async function duplicateAction(sourceId, patch, admin) {
   if (source.status !== 'finished') {
     throw new HttpError(409, 'Only finished actions can be duplicated this way.');
   }
+  if (admin.role !== 'admin' && source.assigned_to_email !== admin.email) {
+    throw new HttpError(403, 'You can only duplicate actions assigned to you');
+  }
 
   const next = {
     title: patch.title ?? source.title,
@@ -295,11 +306,12 @@ export async function duplicateAction(sourceId, patch, admin) {
   const { rows: inserted } = await query(
     `INSERT INTO actions
        (title, description, customer_name, customer_ref, address, assigned_to_email, priority, deadline, status, source)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'admin')
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING ${ACTION_COLUMNS}`,
     [
       next.title, next.description, next.customer_name, next.customer_ref,
-      next.address, next.assigned_to_email, next.priority, next.deadline, initialStatus
+      next.address, next.assigned_to_email, next.priority, next.deadline, initialStatus,
+      admin.role === 'admin' ? 'admin' : 'employee'
     ]
   );
   const created = inserted[0];
@@ -328,6 +340,9 @@ export async function restoreAction(actionId, patch, admin) {
     if (!row) throw new HttpError(404, 'Action not found');
     if (row.status !== 'cancelled') {
       throw new HttpError(409, 'Only cancelled actions can be restored.');
+    }
+    if (admin.role !== 'admin' && row.assigned_to_email !== admin.email) {
+      throw new HttpError(403, 'You can only restore actions assigned to you');
     }
 
     const next = {
@@ -375,15 +390,19 @@ export async function restoreAction(actionId, patch, admin) {
 }
 
 /** Admin-Only: Hard delete an action and return its metadata before it vanishes for notifications */
-export async function deleteAction(id) {
+export async function deleteAction(id, actor) {
   const { rows: existing } = await query(
     'SELECT id, title, assigned_to_email, customer_name FROM actions WHERE id = $1',
     [id]
   );
   if (existing.length === 0) return null;
+  const row = existing[0];
+  if (actor.role !== 'admin' && row.assigned_to_email !== actor.email) {
+    throw new HttpError(403, 'You can only delete actions assigned to you');
+  }
   await query('DELETE FROM action_status_history WHERE action_id = $1', [id]);
   await query('DELETE FROM actions WHERE id = $1', [id]);
-  return existing[0];
+  return row;
 }
 
 /** Used by the overdue job: flips in_progress -> postponed past deadline. Returns affected rows. */

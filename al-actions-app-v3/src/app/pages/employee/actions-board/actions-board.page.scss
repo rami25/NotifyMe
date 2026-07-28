@@ -1,0 +1,98 @@
+.al-board-content {
+  --padding-bottom: 24px;
+}
+
+.al-board-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0 80px;
+}
+
+.al-board-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--al-hairline);
+  border-radius: 16px;
+  background: var(--al-white);
+  padding: 12px;
+  text-align: left;
+}
+
+.al-priority-stripe {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 999px;
+}
+
+.priority-high { background: var(--al-red); }
+.priority-medium { background: var(--al-blue); }
+.priority-low { background: var(--al-green); }
+
+.al-board-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.al-board-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.al-board-top h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--al-ink);
+}
+
+.al-status-chip {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.status-in_progress {
+  background: rgba(56, 128, 255, 0.12);
+  color: var(--al-blue);
+}
+
+.status-postponed {
+  background: rgba(230, 73, 69, 0.12);
+  color: var(--al-red);
+}
+
+.status-finished {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--al-green);
+}
+
+.status-cancelled {
+  background: rgba(107, 114, 128, 0.12);
+  color: var(--al-ink-soft);
+}
+
+.al-board-meta {
+  margin: 4px 0 0;
+  color: var(--al-ink-soft);
+  font-size: 12px;
+}
+
+.al-chevron {
+  color: var(--al-ink-soft);
+}
+
+.al-empty-state {
+  text-align: center;
+  padding-top: 32px;
+  color: var(--al-ink-soft);
+}
+
+.al-skeleton {
+  min-height: 72px;
+}

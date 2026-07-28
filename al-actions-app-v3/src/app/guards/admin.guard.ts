@@ -11,8 +11,8 @@ export const adminGuard: CanActivateFn = () => {
     return router.parseUrl('/login');
   }
   if (user.role !== 'admin') {
-    // Not an admin — send them back to their own plan rather than a dead end.
-    return router.parseUrl('/plan');
+    // Not an admin — send them to the employee workspace rather than a dead end.
+    return router.parseUrl('/employee');
   }
   return true;
 };

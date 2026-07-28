@@ -57,22 +57,33 @@ actionsRouter.get(
 /** Admin-only: direct creation, one of the two intake paths (the other being the Sheet sync). */
 actionsRouter.post(
   '/',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { title, description, customerName, customerRef, address, assignedToEmail, priority, deadline } =
       req.body;
 
-    if (!title || !customerName || !address || !assignedToEmail || !deadline) {
-      throw new HttpError(400, 'title, customerName, address, assignedToEmail, and deadline are required');
+    if (!title || !customerName || !address || !deadline) {
+      throw new HttpError(400, 'title, customerName, address, and deadline are required');
     }
 
-    const assignee = await findByEmail(assignedToEmail.toLowerCase());
-    if (!assignee || !assignee.active) {
-      throw new HttpError(400, 'assignedToEmail must be an active user');
+    let normalizedAssignedToEmail = assignedToEmail?.toLowerCase();
+    if (req.user.role === 'employee') {
+      if (assignedToEmail && normalizedAssignedToEmail !== req.user.email.toLowerCase()) {
+        throw new HttpError(403, 'You can only create actions assigned to yourself');
+      }
+      normalizedAssignedToEmail = req.user.email;
+    } else {
+      if (!normalizedAssignedToEmail) {
+        throw new HttpError(400, 'assignedToEmail is required for admin-created actions');
+      }
+      const assignee = await findByEmail(normalizedAssignedToEmail);
+      if (!assignee || !assignee.active) {
+        throw new HttpError(400, 'assignedToEmail must be an active user');
+      }
+      normalizedAssignedToEmail = assignee.email;
     }
 
     const action = await createAction(
-      { title, description, customerName, customerRef, address, assignedToEmail: assignee.email, priority, deadline },
+      { title, description, customerName, customerRef, address, assignedToEmail: normalizedAssignedToEmail, priority, deadline },
       req.user
     );
 
@@ -90,13 +101,15 @@ actionsRouter.post(
 /** Admin-only: Update Action **/
 actionsRouter.patch(
   '/:id',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { title, description, customerName, customerRef, address, assignedToEmail, priority, deadline } =
       req.body;
 
     let normalizedAssignee;
     if (assignedToEmail) {
+      if (req.user.role !== 'admin' && assignedToEmail.toLowerCase() !== req.user.email.toLowerCase()) {
+        throw new HttpError(403, 'You can only keep actions assigned to yourself');
+      }
       const assignee = await findByEmail(assignedToEmail.toLowerCase());
       if (!assignee || !assignee.active) {
         throw new HttpError(400, 'assignedToEmail must be an active user');
@@ -136,16 +149,12 @@ actionsRouter.patch(
 );
 
 /**
- * Admin-only: duplicate a FINISHED action into a brand-new one, with
- * optionally-edited fields (title, assignee, deadline, etc. — anything
- * omitted falls back to the source's value). The finished original is
- * left completely untouched. This is the only supported way to "edit" a
- * finished action's details — see updateAction's 409 for why a plain
- * edit is refused instead.
+ * Duplicate a FINISHED action into a brand-new one, with optionally-edited
+ * fields. The finished original is left untouched. Employees can do this
+ * for their own assigned action, while admins may do it across the board.
  */
 actionsRouter.post(
   '/:id/duplicate',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { title, description, customerName, customerRef, address, assignedToEmail, priority, deadline } =
       req.body || {};
@@ -178,15 +187,12 @@ actionsRouter.post(
 );
 
 /**
- * Admin-only: restore a CANCELLED action back to in_progress/postponed
- * (derived from its — possibly just-edited — deadline). Unlike
- * duplicate, this reuses the same action id: a cancelled action never
- * produced a historical record worth protecting the way a finished one
- * did, so there's no reason to fork a new row.
+ * Restore a CANCELLED action back to in_progress/postponed (derived from
+ * its — possibly just-edited — deadline). Unlike duplicate, this reuses
+ * the same action id and can be used by an employee for their own action.
  */
 actionsRouter.post(
   '/:id/restore',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { title, description, customerName, customerRef, address, assignedToEmail, priority, deadline } =
       req.body || {};
@@ -224,9 +230,8 @@ actionsRouter.post(
 
 actionsRouter.delete(
   '/:id',
-  requireAdmin,
   asyncHandler(async (req, res) => {
-    const removed = await deleteAction(req.params.id);
+    const removed = await deleteAction(req.params.id, req.user);
     if (!removed) throw new HttpError(404, 'Action not found');
     notifyActionDeleted(removed); // via E-Mail
     // const pushToken = await getPushToken(removed.assigned_to_email);

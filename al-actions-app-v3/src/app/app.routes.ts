@@ -31,6 +31,45 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/profile/profile.page').then(m => m.ProfilePage)
   },
+  {
+    path: 'employee',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/employee/dashboard/dashboard.page').then(m => m.EmployeeDashboardPage)
+  },
+  {
+    path: 'employee/actions',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/employee/actions-board/actions-board.page').then(m => m.EmployeeActionsBoardPage)
+  },
+  {
+    path: 'employee/actions/new',
+    canActivate: [authGuard],
+    data: { formMode: 'create' },
+    loadComponent: () => import('./pages/employee/action-form/action-form.page').then(m => m.EmployeeActionFormPage)
+  },
+  {
+    path: 'employee/actions/:id/edit',
+    canActivate: [authGuard],
+    data: { formMode: 'edit' },
+    loadComponent: () => import('./pages/employee/action-form/action-form.page').then(m => m.EmployeeActionFormPage)
+  },
+  {
+    path: 'employee/actions/:id/duplicate',
+    canActivate: [authGuard],
+    data: { formMode: 'duplicate' },
+    loadComponent: () => import('./pages/employee/action-form/action-form.page').then(m => m.EmployeeActionFormPage)
+  },
+  {
+    path: 'employee/actions/:id/restore',
+    canActivate: [authGuard],
+    data: { formMode: 'restore' },
+    loadComponent: () => import('./pages/employee/action-form/action-form.page').then(m => m.EmployeeActionFormPage)
+  },
+  {
+    path: 'employee/actions/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/employee/action-detail/action-detail.page').then(m => m.EmployeeActionDetailPage)
+  },
   // ---- Admin panel: same app, role-gated routes (per the spec, not a standalone app) ----
   {
     path: 'admin',

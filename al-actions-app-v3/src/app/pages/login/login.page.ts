@@ -25,9 +25,8 @@ export class LoginPage {
     this.submitting.set(false);
 
     if (result.ok) {
-      // Admins land on the Dashboard, not the employee Plan — they still
-      // reach their own Plan via the "My Plan" tab (see BottomNavComponent).
-      const landingRoute = this.auth.isAdmin() ? '/admin' : '/plan';
+      // Admins land on the admin dashboard, while employees start in their own workspace.
+      const landingRoute = this.auth.isAdmin() ? '/admin' : '/employee';
       this.router.navigateByUrl(landingRoute, { replaceUrl: true });
     } else {
       this.errorMessage.set(result.message);

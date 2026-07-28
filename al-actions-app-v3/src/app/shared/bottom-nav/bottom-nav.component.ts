@@ -58,6 +58,10 @@ addIcons({ listOutline, checkmarkDoneOutline, personOutline, gridOutline, people
       </nav>
     } @else {
       <nav class="al-bottom-nav">
+        <a routerLink="/employee" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="al-nav-item">
+          <ion-icon name="grid-outline"></ion-icon>
+          <span>Dashboard</span>
+        </a>
         <a routerLink="/plan" routerLinkActive="active" class="al-nav-item">
           <span class="al-nav-icon-wrap">
             <ion-icon name="list-outline"></ion-icon>
@@ -65,11 +69,11 @@ addIcons({ listOutline, checkmarkDoneOutline, personOutline, gridOutline, people
               <ion-badge color="brand-red" class="al-nav-badge">{{ overdueCount }}</ion-badge>
             }
           </span>
-          <span>Plan</span>
+          <span>My Plan</span>
         </a>
-        <a routerLink="/finished" routerLinkActive="active" class="al-nav-item">
+        <a routerLink="/employee/actions" routerLinkActive="active" class="al-nav-item">
           <ion-icon name="checkmark-done-outline"></ion-icon>
-          <span>History</span>
+          <span>Actions</span>
         </a>
         <a routerLink="/profile" routerLinkActive="active" class="al-nav-item">
           <ion-icon name="person-outline"></ion-icon>
