@@ -54,11 +54,17 @@
               <ion-select-option value="admin">Admin</ion-select-option>
             </ion-select>
           </div>
-          <ion-toggle
-            [checked]="user.active"
-            [disabled]="isSelf(user) || busyEmail() === user.email"
-            (ionChange)="toggleActive(user, $event)">
-          </ion-toggle>
+          <div class="al-user-actions">
+            <button class="al-stats-btn" type="button" (click)="openStats(user)">
+              <ion-icon name="stats-chart-outline"></ion-icon>
+              Actions statistic
+            </button>
+            <ion-toggle
+              [checked]="user.active"
+              [disabled]="isSelf(user) || busyEmail() === user.email"
+              (ionChange)="toggleActive(user, $event)">
+            </ion-toggle>
+          </div>
         </div>
       }
     </div>

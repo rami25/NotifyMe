@@ -1,19 +1,20 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {
   IonHeader, IonToolbar, IonContent, IonIcon, IonSearchbar,
   IonToggle, IonSelect, IonSelectOption, IonSkeletonText, AlertController, ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { peopleOutline, mailOutline } from 'ionicons/icons';
+import { peopleOutline, mailOutline, statsChartOutline } from 'ionicons/icons';
 import { AdminService } from '../../../services/admin.service';
 import { HeaderBrandComponent } from '../../../shared/header-brand/header-brand.component';
 import { BottomNavComponent } from '../../../shared/bottom-nav/bottom-nav.component';
 import { AppUser, UserRole } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
 
-addIcons({ peopleOutline, mailOutline });
+addIcons({ peopleOutline, mailOutline, statsChartOutline });
 
 @Component({
   selector: 'app-admin-users',
@@ -42,7 +43,8 @@ export class AdminUsersPage implements OnInit {
     public admin: AdminService,
     public auth: AuthService,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -133,6 +135,10 @@ export class AdminUsersPage implements OnInit {
     } finally {
       this.busyEmail.set(null);
     }
+  }
+
+  openStats(user: AppUser): void {
+    this.router.navigate(['/admin/users', encodeURIComponent(user.email), 'stats']);
   }
 
   private async toast(message: string, color: string): Promise<void> {

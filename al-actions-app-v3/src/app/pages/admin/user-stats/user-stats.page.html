@@ -1,0 +1,51 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/admin/users" text=""></ion-back-button>
+    </ion-buttons>
+    <al-header-brand title="User stats"></al-header-brand>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="al-admin-content">
+  @if (loading()) {
+    <div class="al-stats-grid">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="al-stat-card al-skeleton">
+          <ion-skeleton-text [animated]="true" style="width: 40%; height: 24px;"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" style="width: 60%; height: 12px; margin-top: 8px;"></ion-skeleton-text>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="al-user-header">
+      <h2>{{ userName() }}</h2>
+      <p>{{ userEmail() }}</p>
+    </div>
+
+    <div class="al-stats-grid">
+      <div class="al-stat-card">
+        <ion-icon name="time-outline" class="icon-blue"></ion-icon>
+        <span class="al-stat-value">{{ activeCount() }}</span>
+        <span class="al-stat-label">Active</span>
+      </div>
+      <div class="al-stat-card">
+        <ion-icon name="alert-circle-outline" class="icon-red"></ion-icon>
+        <span class="al-stat-value al-stat-danger">{{ overdueCount() }}</span>
+        <span class="al-stat-label">Overdue</span>
+      </div>
+      <div class="al-stat-card">
+        <ion-icon name="checkmark-done-circle-outline" class="icon-green"></ion-icon>
+        <span class="al-stat-value">{{ finishedCount() }}</span>
+        <span class="al-stat-label">Finished</span>
+      </div>
+      <div class="al-stat-card">
+        <ion-icon name="close-circle-outline" class="icon-gray"></ion-icon>
+        <span class="al-stat-value">{{ cancelledCount() }}</span>
+        <span class="al-stat-label">Cancelled</span>
+      </div>
+    </div>
+  }
+</ion-content>
+
+<al-bottom-nav [overdueCount]="admin.overdueCount()"></al-bottom-nav>

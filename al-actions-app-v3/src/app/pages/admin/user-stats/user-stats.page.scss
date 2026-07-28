@@ -1,0 +1,70 @@
+.al-admin-content {
+  --background: var(--al-surface);
+}
+
+.al-user-header {
+  padding: 16px 16px 4px;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--al-ink);
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--al-ink-soft);
+  }
+}
+
+.al-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 16px;
+}
+
+.al-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  background: var(--al-white);
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: left;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(30, 36, 48, 0.06);
+
+  ion-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .icon-blue { color: var(--al-blue); }
+  .icon-red { color: var(--al-red); }
+  .icon-green { color: var(--al-status-finished); }
+  .icon-gray { color: var(--al-ink-soft); }
+}
+
+.al-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--al-ink);
+}
+
+.al-stat-danger {
+  color: var(--al-red);
+}
+
+.al-stat-label {
+  font-size: 12px;
+  color: var(--al-ink-soft);
+}
+
+.al-skeleton {
+  display: flex;
+}

@@ -129,5 +129,10 @@ export const routes: Routes = [
     canActivate: [authGuard, adminGuard],
     loadComponent: () => import('./pages/admin/users/users.page').then(m => m.AdminUsersPage)
   },
+  {
+    path: 'admin/users/:email/stats',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () => import('./pages/admin/user-stats/user-stats.page').then(m => m.AdminUserStatsPage)
+  },
   { path: '**', redirectTo: 'plan' }
 ];
