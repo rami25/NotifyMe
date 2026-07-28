@@ -17,6 +17,20 @@
     </div>
   }
 
+  <div class="al-date-filter">
+    <ion-item lines="none" class="al-date-item">
+      <ion-label position="stacked">Show actions from</ion-label>
+      <ion-input
+        type="date"
+        [value]="selectedDate()"
+        (ionInput)="selectedDate.set($any($event.target).value || '')">
+      </ion-input>
+    </ion-item>
+    @if (selectedDate()) {
+      <button class="al-clear-btn" type="button" (click)="clearDateFilter()">Clear</button>
+    }
+  </div>
+
   @if (actionsService.loading()) {
     <div class="al-card-list">
       @for (i of [1,2,3]; track i) {
@@ -27,15 +41,15 @@
         </div>
       }
     </div>
-  } @else if (actionsService.plan().length === 0) {
+  } @else if (filteredPlan().length === 0) {
     <div class="al-empty-state">
       <ion-icon name="file-tray-outline"></ion-icon>
-      <h3>Your plan is clear</h3>
-      <p>New actions assigned to you will show up here, sorted by deadline.</p>
+      <h3>No actions for this date</h3>
+      <p>Try another date or clear the filter to see all your upcoming actions.</p>
     </div>
   } @else {
     <div class="al-card-list">
-      @for (action of actionsService.plan(); track action.id) {
+      @for (action of filteredPlan(); track action.id) {
         <button class="al-action-card" type="button" (click)="openAction(action)">
           <span class="al-priority-stripe priority-{{ action.priority }}"></span>
           <div class="al-action-body">
