@@ -1,0 +1,93 @@
+.al-plan-content {
+  --background: var(--al-surface);
+}
+
+.al-overdue-banner {
+  margin: 12px 16px 0;
+  padding: 10px 14px;
+  background: rgba(215, 0, 30, 0.08);
+  color: var(--al-red-shade);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.al-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.al-action-card {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  background: var(--al-white);
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(30, 36, 48, 0.06);
+  font-family: inherit;
+
+  &:active {
+    background: var(--al-surface);
+  }
+}
+
+.al-action-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.al-action-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--al-ink);
+    margin: 0;
+    line-height: 1.3;
+  }
+}
+
+.al-customer {
+  font-size: 13px;
+  color: var(--al-ink-soft);
+  margin: 2px 0 8px;
+}
+
+.al-meta-row {
+  margin-top: 3px;
+}
+
+.al-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--al-ink-soft);
+
+  ion-icon {
+    font-size: 14px;
+    color: var(--al-blue);
+    flex-shrink: 0;
+  }
+}
+
+.al-chevron {
+  align-self: center;
+  color: var(--al-hairline);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.al-skeleton {
+  display: block;
+}

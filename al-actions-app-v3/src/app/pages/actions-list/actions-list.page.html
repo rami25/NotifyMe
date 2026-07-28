@@ -1,0 +1,72 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <al-header-brand title="My Plan"></al-header-brand>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="al-plan-content">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (actionsService.overdueCount() > 0) {
+    <div class="al-overdue-banner">
+      {{ actionsService.overdueCount() }}
+      {{ actionsService.overdueCount() === 1 ? 'action has' : 'actions have' }}
+      passed their deadline and moved to Postponed.
+    </div>
+  }
+
+  @if (actionsService.loading()) {
+    <div class="al-card-list">
+      @for (i of [1,2,3]; track i) {
+        <div class="al-action-card al-skeleton">
+          <ion-skeleton-text [animated]="true" style="width: 70%; height: 16px;"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" style="width: 45%; height: 12px; margin-top: 8px;"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" style="width: 55%; height: 12px; margin-top: 6px;"></ion-skeleton-text>
+        </div>
+      }
+    </div>
+  } @else if (actionsService.plan().length === 0) {
+    <div class="al-empty-state">
+      <ion-icon name="file-tray-outline"></ion-icon>
+      <h3>Your plan is clear</h3>
+      <p>New actions assigned to you will show up here, sorted by deadline.</p>
+    </div>
+  } @else {
+    <div class="al-card-list">
+      @for (action of actionsService.plan(); track action.id) {
+        <button class="al-action-card" type="button" (click)="openAction(action)">
+          <span class="al-priority-stripe priority-{{ action.priority }}"></span>
+          <div class="al-action-body">
+            <div class="al-action-top">
+              <h3>{{ action.title }}</h3>
+              @if (action.status === 'postponed') {
+                <span class="al-status-chip status-postponed">Overdue</span>
+              } @else if (isDueSoon(action)) {
+                <span class="al-status-chip status-in_progress">Due soon</span>
+              }
+            </div>
+            <p class="al-customer">{{ action.customerName }}</p>
+            <div class="al-meta-row">
+              <span class="al-meta">
+                <ion-icon name="location-outline"></ion-icon>
+                {{ action.address }}
+                @if (action.distanceKm) { · {{ action.distanceKm }} km }
+              </span>
+            </div>
+            <div class="al-meta-row">
+              <span class="al-meta">
+                <ion-icon name="time-outline"></ion-icon>
+                Due {{ action.deadline | date:'MMM d, HH:mm' }}
+              </span>
+            </div>
+          </div>
+          <ion-icon class="al-chevron" name="chevron-forward-outline"></ion-icon>
+        </button>
+      }
+    </div>
+  }
+</ion-content>
+
+<al-bottom-nav [overdueCount]="actionsService.overdueCount()"></al-bottom-nav>

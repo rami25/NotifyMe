@@ -21,7 +21,7 @@ and don't write any code until i tell you
 You're replacing a Google Sheet-based action tracking process at Air Liquide with a proper client-server system, while keeping the fundamentals of what the Sheet already does: tracking actions tied to patient/customer records, assigned to specific field employees, sorted by deadline and priority.
 How actions get created
 There are two paths into the system, not one. An admin can create and assign an action directly through the admin panel, writing straight to the database. Or an action originates upstream — from Navision or another source — landing as a new row in the Google Sheet, which the backend picks up through a scheduled sync (or an Apps Script trigger firing a webhook on new-row-added) and inserts into the same actions table. Both paths converge on the same record and trigger the same initial-assignment notification to the employee, resolved through the AD-username-to-email mapping since upstream sources will likely keep writing the domain\username format the Sheet uses today.
-This makes the Sheet a permanent ingestion boundary, not a temporary stepping stone — it's still needed even once the admin panel exists, specifically as the intake point for automated/external sources. The sync only flows one direction: Sheet into database. Status changes made afterward (Finished, Cancelled, Postponed) live only in the database and admin panel and never get written back into the Sheet, which avoids the concurrency problems of editing the same data in two places. If a live view of current status is needed on the Sheet side, that's better served by a periodically regenerated read-only report than a two-way sync.
+This makes the Sheet a permanent ingestion boundary, not a temporary stepping stone — it's still needed even once the admin panel exists, specifically as the intake point for automated/external sources. The sync only flows one direction: Sheet into database. Status changes made afterward (Finished, Cancelled, Postponed, in progress) live only in the database and admin panel and never get written back into the Sheet, which avoids the concurrency problems of editing the same data in two places. If a live view of current status is needed on the Sheet side, that's better served by a periodically regenerated read-only report than a two-way sync.
 The core workflow
 Once an action exists, it's assigned to an employee (identified by @airliquide.com email) who sees only their own actions in a mobile app. Each action moves through four states:
 
@@ -43,9 +43,3 @@ Database — PostgreSQL, the live source of truth for actions and status.
 Google Sheet — permanent ingestion point for upstream sources like Navision, feeding new actions into the database one-way; not a live two-way store once actions exist.
 Notifications — Firebase Cloud Messaging for push, Gmail/SMTP for email, triggered from the backend depending on who acted and who needs to know.
 Auth — Google Sign-In restricted to the airliquide.com Workspace domain, with the role field determining what each authenticated user can see and do.
-
-
-
-
-### edges cases
-employe get action that end in early date, so automatically put it in postponed history

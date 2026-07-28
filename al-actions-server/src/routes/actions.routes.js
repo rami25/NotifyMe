@@ -8,6 +8,8 @@ import {
   cancelAction,
   createAction,
   updateAction,
+  duplicateAction,
+  restoreAction,
   deleteAction
 } from '../services/actions.repository.js';
 import { findByEmail, getPushToken } from '../services/users.repository.js';
@@ -127,6 +129,93 @@ actionsRouter.patch(
     //   notifyActionUpdated(action);
     //   const pushToken = await getPushToken(action.assignedToEmail);
     //   notifyEmployeeActionUpdated({ id: action.id, title: action.title }, pushToken);
+    }
+
+    res.json(action);
+  })
+);
+
+/**
+ * Admin-only: duplicate a FINISHED action into a brand-new one, with
+ * optionally-edited fields (title, assignee, deadline, etc. — anything
+ * omitted falls back to the source's value). The finished original is
+ * left completely untouched. This is the only supported way to "edit" a
+ * finished action's details — see updateAction's 409 for why a plain
+ * edit is refused instead.
+ */
+actionsRouter.post(
+  '/:id/duplicate',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { title, description, customerName, customerRef, address, assignedToEmail, priority, deadline } =
+      req.body || {};
+
+    let normalizedAssignee;
+    if (assignedToEmail) {
+      const assignee = await findByEmail(assignedToEmail.toLowerCase());
+      if (!assignee || !assignee.active) {
+        throw new HttpError(400, 'assignedToEmail must be an active user');
+      }
+      normalizedAssignee = assignee.email;
+    }
+
+    const action = await duplicateAction(
+      req.params.id,
+      { title, description, customerName, customerRef, address, assignedToEmail: normalizedAssignee, priority, deadline },
+      req.user
+    );
+
+    // Same "you've been assigned" email a brand-new action would trigger.
+    notifyEmployeeAssigned({
+      title: action.title,
+      customer_name: action.customerName,
+      assigned_to_email: action.assignedToEmail,
+      deadline: action.deadline
+    });
+
+    res.status(201).json(action);
+  })
+);
+
+/**
+ * Admin-only: restore a CANCELLED action back to in_progress/postponed
+ * (derived from its — possibly just-edited — deadline). Unlike
+ * duplicate, this reuses the same action id: a cancelled action never
+ * produced a historical record worth protecting the way a finished one
+ * did, so there's no reason to fork a new row.
+ */
+actionsRouter.post(
+  '/:id/restore',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { title, description, customerName, customerRef, address, assignedToEmail, priority, deadline } =
+      req.body || {};
+
+    let normalizedAssignee;
+    if (assignedToEmail) {
+      const assignee = await findByEmail(assignedToEmail.toLowerCase());
+      if (!assignee || !assignee.active) {
+        throw new HttpError(400, 'assignedToEmail must be an active user');
+      }
+      normalizedAssignee = assignee.email;
+    }
+
+    const { action, reassigned } = await restoreAction(
+      req.params.id,
+      { title, description, customerName, customerRef, address, assignedToEmail: normalizedAssignee, priority, deadline },
+      req.user
+    );
+
+    if (reassigned) {
+    //   notifyEmployeeAssigned({
+    //     title: action.title,
+    //     customer_name: action.customerName,
+    //     assigned_to_email: action.assignedToEmail,
+    //     deadline: action.deadline
+    //   });
+    } else {
+    //   const pushToken = await getPushToken(action.assignedToEmail);
+    //   notifyEmployeeActionRestored({ id: action.id, title: action.title }, pushToken);
     }
 
     res.json(action);

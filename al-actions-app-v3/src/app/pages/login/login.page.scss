@@ -1,0 +1,88 @@
+.al-login-content {
+  --background: #ffffff;
+}
+
+.al-login-wrap {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 28px;
+  text-align: center;
+}
+
+.al-login-brand {
+  margin-bottom: 36px;
+
+  img {
+    width: 200px;
+    max-width: 70vw;
+    height: auto;
+  }
+}
+
+.al-login-copy {
+  margin-bottom: 32px;
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--al-ink);
+    margin: 0 0 8px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--al-ink-soft);
+    margin: 0;
+    max-width: 280px;
+    line-height: 1.4;
+  }
+}
+
+.al-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  height: 48px;
+  border-radius: 10px;
+  border: 1.5px solid var(--al-blue);
+  background: var(--al-white);
+  color: var(--al-blue);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:active {
+    background: var(--al-surface);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+  }
+
+  ion-spinner {
+    width: 18px;
+    height: 18px;
+    color: var(--al-blue);
+  }
+}
+
+.al-login-error {
+  margin-top: 16px;
+  color: var(--al-red);
+  font-size: 13px;
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+.al-login-footnote {
+  margin-top: 28px;
+  font-size: 12px;
+  color: var(--al-ink-soft);
+}

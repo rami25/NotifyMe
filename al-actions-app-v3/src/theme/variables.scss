@@ -1,0 +1,110 @@
+// ============================================================
+// Air Liquide Tunisie — Field Action Tracker
+// Brand palette sampled directly from the corporate logo:
+//   Red  #D7001E  — primary brand color, used sparingly for
+//                    primary actions, high-priority accents
+//   Blue #375F9B  — secondary brand color, used for navigation
+//                    chrome, headers, and trust/utility surfaces
+//   White #FFFFFF — dominant surface color, keeps the field app
+//                    legible in bright outdoor conditions
+// ============================================================
+
+:root {
+  // --- Brand core ---
+  --al-red: #D7001E;
+  --al-red-shade: #B4001A;
+  --al-red-tint: #F03550;
+
+  --al-blue: #375F9B;
+  --al-blue-shade: #2A4A7C;
+  --al-blue-tint: #5779AD;
+
+  --al-white: #FFFFFF;
+
+  // --- Neutrals (kept cool to sit next to the blue) ---
+  --al-ink: #1E2430;
+  --al-ink-soft: #5A6472;
+  --al-hairline: #E2E6EC;
+  --al-surface: #F4F6F9;
+
+  // --- Status colors (map 1:1 to the 4 action states) ---
+  --al-status-in-progress: #375F9B;   // blue: active, awaiting resolution
+  --al-status-finished: #1C8A52;      // green: closed out
+  --al-status-cancelled: #8A93A3;     // neutral grey: withdrawn, not a failure state
+  --al-status-postponed: #D7001E;     // brand red: missed deadline, needs attention
+
+  // --- Priority accents (used as a left-edge stripe on action cards) ---
+  --al-priority-high: #D7001E;
+  --al-priority-medium: #E08A00;
+  --al-priority-low: #375F9B;
+
+  // ===== Ionic color overrides =====
+  --ion-color-primary: var(--al-blue);
+  --ion-color-primary-rgb: 55, 95, 155;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: var(--al-blue-shade);
+  --ion-color-primary-tint: var(--al-blue-tint);
+
+  --ion-color-secondary: var(--al-red);
+  --ion-color-secondary-rgb: 215, 0, 30;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: var(--al-red-shade);
+  --ion-color-secondary-tint: var(--al-red-tint);
+
+  --ion-color-success: var(--al-status-finished);
+  --ion-color-success-rgb: 28, 138, 82;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #197747;
+  --ion-color-success-tint: #339462;
+
+  --ion-color-warning: var(--al-status-postponed);
+  --ion-color-warning-rgb: 215, 0, 30;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: var(--al-red-shade);
+  --ion-color-warning-tint: var(--al-red-tint);
+
+  --ion-color-medium: var(--al-status-cancelled);
+  --ion-color-medium-rgb: 138, 147, 163;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #797f8f;
+  --ion-color-medium-tint: #969db0;
+
+  --ion-color-dark: var(--al-ink);
+  --ion-color-dark-rgb: 30, 36, 48;
+
+  --ion-background-color: var(--al-surface);
+  --ion-background-color-rgb: 244, 246, 249;
+  --ion-text-color: var(--al-ink);
+  --ion-text-color-rgb: 30, 36, 48;
+
+  --ion-toolbar-background: var(--al-white);
+  --ion-toolbar-color: var(--al-blue);
+  --ion-item-background: var(--al-white);
+  --ion-border-color: var(--al-hairline);
+
+  --al-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+// Custom named Ionic color: "brand-red" so components can use color="brand-red"
+:root {
+  --ion-color-brand-red: var(--al-red);
+  --ion-color-brand-red-rgb: 215, 0, 30;
+  --ion-color-brand-red-contrast: #ffffff;
+  --ion-color-brand-red-contrast-rgb: 255, 255, 255;
+  --ion-color-brand-red-shade: var(--al-red-shade);
+  --ion-color-brand-red-tint: var(--al-red-tint);
+}
+
+.ion-color-brand-red {
+  --ion-color-base: var(--ion-color-brand-red);
+  --ion-color-base-rgb: var(--ion-color-brand-red-rgb);
+  --ion-color-contrast: var(--ion-color-brand-red-contrast);
+  --ion-color-contrast-rgb: var(--ion-color-brand-red-contrast-rgb);
+  --ion-color-shade: var(--ion-color-brand-red-shade);
+  --ion-color-tint: var(--ion-color-brand-red-tint);
+}

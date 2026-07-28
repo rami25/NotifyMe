@@ -1,0 +1,68 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <al-header-brand title="Users"></al-header-brand>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      placeholder="Search name or email…"
+      [debounce]="200"
+      (ionInput)="searchTerm.set($any($event).detail.value || '')">
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="al-users-content">
+  @if (admin.loadingUsers() && admin.users().length === 0) {
+    <div class="al-users-list">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="al-user-row al-skeleton">
+          <ion-skeleton-text [animated]="true" style="width: 40px; height: 40px; border-radius: 50%;"></ion-skeleton-text>
+          <div style="flex:1; margin-left: 12px;">
+            <ion-skeleton-text [animated]="true" style="width: 50%; height: 13px;"></ion-skeleton-text>
+            <ion-skeleton-text [animated]="true" style="width: 70%; height: 11px; margin-top: 6px;"></ion-skeleton-text>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (filtered().length === 0) {
+    <div class="al-empty-state">
+      <ion-icon name="people-outline"></ion-icon>
+      <h3>No users found</h3>
+      <p>They'll appear here after their first sign-in, or after a Sheet-ingested action creates them.</p>
+    </div>
+  } @else {
+    <div class="al-users-list">
+      @for (user of filtered(); track user.email) {
+        <div class="al-user-row" [class.al-user-inactive]="!user.active">
+          <div class="al-avatar">{{ user.name.charAt(0) }}</div>
+          <div class="al-user-info">
+            <div class="al-user-name-row">
+              <h3>{{ user.name }}</h3>
+              @if (isSelf(user)) { <span class="al-you-badge">You</span> }
+            </div>
+            <p class="al-user-email">
+              <ion-icon name="mail-outline"></ion-icon>
+              {{ user.email }}
+            </p>
+            <ion-select
+              class="al-role-select"
+              [value]="user.role"
+              [disabled]="isSelf(user) || busyEmail() === user.email"
+              (ionChange)="changeRole(user, $any($event.detail.value))"
+              interface="popover">
+              <ion-select-option value="employee">Employee</ion-select-option>
+              <ion-select-option value="admin">Admin</ion-select-option>
+            </ion-select>
+          </div>
+          <ion-toggle
+            [checked]="user.active"
+            [disabled]="isSelf(user) || busyEmail() === user.email"
+            (ionChange)="toggleActive(user, $event)">
+          </ion-toggle>
+        </div>
+      }
+    </div>
+  }
+</ion-content>
+
+<al-bottom-nav [overdueCount]="admin.overdueCount()"></al-bottom-nav>

@@ -1,0 +1,43 @@
+{
+  "name": "al-actions-app",
+  "version": "1.0.0",
+  "description": "Air Liquide Tunisie - field action tracker (employee mobile app)",
+  "scripts": {
+    "start": "ionic serve",
+    "build": "ng build --configuration production",
+    "sync": "npx cap sync",
+    "android": "npx cap run android",
+    "ios": "npx cap run ios"
+  },
+  "dependencies": {
+    "@angular/animations": "^18.0.0",
+    "@angular/common": "^18.0.0",
+    "@angular/core": "^18.0.0",
+    "@angular/forms": "^18.0.0",
+    "@angular/platform-browser": "^18.0.0",
+    "@angular/platform-browser-dynamic": "^18.0.0",
+    "@angular/router": "^18.0.0",
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/push-notifications": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
+    "@ionic/angular": "^8.0.0",
+    "ionicons": "^7.2.2",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.6.0",
+    "zone.js": "~0.14.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^18.0.0",
+    "@angular/cli": "^18.0.0",
+    "@angular/compiler": "^18.0.0",
+    "@angular/compiler-cli": "^18.0.0",
+    "@capacitor/assets": "^3.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@ionic/cli": "^7.2.0",
+    "typescript": "~5.4.0"
+  }
+}

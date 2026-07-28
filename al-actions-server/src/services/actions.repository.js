@@ -29,6 +29,10 @@ function toApiShape(row, history = []) {
   };
 }
 
+function classifyByDeadline(deadlineIso) {
+  return new Date(deadlineIso).getTime() > Date.now() ? 'in_progress' : 'postponed';
+}
+
 async function fetchHistoryStandalone(actionId) {
   const { rows } = await query(
     'SELECT status, changed_by_email, changed_by_kind, changed_at FROM action_status_history WHERE action_id = $1 ORDER BY changed_at ASC',
@@ -198,13 +202,16 @@ export async function updateAction(actionId, patch, admin) {
     //   postponed  + new deadline now in the future -> back to in_progress
     //   in_progress + new deadline now in the past   -> immediately postponed
     //     (rather than waiting for the next overdue sweep)
-    let nextStatus = row.status;
-    const deadlineIsFuture = new Date(next.deadline).getTime() > Date.now();
-    if (row.status === 'postponed' && deadlineIsFuture) {
-      nextStatus = 'in_progress';
-    } else if (row.status === 'in_progress' && !deadlineIsFuture) {
-      nextStatus = 'postponed';
-    }
+
+    // let nextStatus = row.status;
+    // const deadlineIsFuture = new Date(next.deadline).getTime() > Date.now();
+    // if (row.status === 'postponed' && deadlineIsFuture) {
+    //   nextStatus = 'in_progress';
+    // } else if (row.status === 'in_progress' && !deadlineIsFuture) {
+    //   nextStatus = 'postponed';
+    // }
+    // const statusChanged = nextStatus !== row.status;
+    const nextStatus = classifyByDeadline(next.deadline);
     const statusChanged = nextStatus !== row.status;
 
     await client.query(
@@ -249,6 +256,120 @@ export async function updateAction(actionId, patch, admin) {
       reassigned,
       statusChanged,
       previousAssignee: reassigned ? row.assigned_to_email : null
+    };
+  });
+}
+
+/**
+ * Admin-only: duplicates a FINISHED action into a brand-new action, with
+ * optionally-edited fields. The original finished row is never touched
+ * — this is the only way to "edit" a finished action's details, and it
+ * preserves the historical record of what was actually done rather than
+ * overwriting it.
+ *
+ * The new action's initial status is derived from ITS OWN deadline
+ * (classifyByDeadline), not forced to in_progress — duplicating a job
+ * that still needs to happen urgently, with a deadline already in the
+ * past, starts life already postponed rather than misrepresenting it.
+ */
+export async function duplicateAction(sourceId, patch, admin) {
+  const { rows } = await query(`SELECT ${ACTION_COLUMNS} FROM actions WHERE id = $1`, [sourceId]);
+  const source = rows[0];
+  if (!source) throw new HttpError(404, 'Action not found');
+  if (source.status !== 'finished') {
+    throw new HttpError(409, 'Only finished actions can be duplicated this way.');
+  }
+
+  const next = {
+    title: patch.title ?? source.title,
+    description: patch.description ?? source.description,
+    customer_name: patch.customerName ?? source.customer_name,
+    customer_ref: patch.customerRef ?? source.customer_ref,
+    address: patch.address ?? source.address,
+    assigned_to_email: patch.assignedToEmail ?? source.assigned_to_email,
+    priority: patch.priority ?? source.priority,
+    deadline: patch.deadline ?? source.deadline
+  };
+  const initialStatus = classifyByDeadline(next.deadline);
+
+  const { rows: inserted } = await query(
+    `INSERT INTO actions
+       (title, description, customer_name, customer_ref, address, assigned_to_email, priority, deadline, status, source)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'admin')
+     RETURNING ${ACTION_COLUMNS}`,
+    [
+      next.title, next.description, next.customer_name, next.customer_ref,
+      next.address, next.assigned_to_email, next.priority, next.deadline, initialStatus
+    ]
+  );
+  const created = inserted[0];
+
+  await query(
+    `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
+     VALUES ($1, $2, $3, 'admin')`,
+    [created.id, initialStatus, admin.email]
+  );
+
+  return toApiShape(created, await fetchHistoryStandalone(created.id));
+}
+
+/**
+ * Admin-only: restores a CANCELLED action back to an active status,
+ * with the ability to edit its fields in the same operation (unlike
+ * duplicateAction, this reuses the SAME row/id — a cancelled action
+ * was never "done" the way a finished one was, so there's no separate
+ * historical artifact worth protecting by leaving it alone). Clears
+ * cancel_reason, since it's active again. New status is derived from
+ * the (possibly edited) deadline, same as updateAction.
+ */
+export async function restoreAction(actionId, patch, admin) {
+  return withTransaction(async client => {
+    const row = await loadActionRowForUpdate(client, actionId);
+    if (!row) throw new HttpError(404, 'Action not found');
+    if (row.status !== 'cancelled') {
+      throw new HttpError(409, 'Only cancelled actions can be restored.');
+    }
+
+    const next = {
+      title: patch.title ?? row.title,
+      description: patch.description ?? row.description,
+      customer_name: patch.customerName ?? row.customer_name,
+      customer_ref: patch.customerRef ?? row.customer_ref,
+      address: patch.address ?? row.address,
+      assigned_to_email: patch.assignedToEmail ?? row.assigned_to_email,
+      priority: patch.priority ?? row.priority,
+      deadline: patch.deadline ?? row.deadline
+    };
+    const restoredStatus = classifyByDeadline(next.deadline);
+
+    await client.query(
+      `UPDATE actions SET
+         title = $2, description = $3, customer_name = $4, customer_ref = $5,
+         address = $6, assigned_to_email = $7, priority = $8, deadline = $9,
+         status = $10, cancel_reason = NULL
+       WHERE id = $1`,
+      [
+        actionId, next.title, next.description, next.customer_name, next.customer_ref,
+        next.address, next.assigned_to_email, next.priority, next.deadline, restoredStatus
+      ]
+    );
+
+    await client.query(
+      `INSERT INTO action_status_history (action_id, status, changed_by_email, changed_by_kind)
+       VALUES ($1, $2, $3, 'admin')`,
+      [actionId, restoredStatus, admin.email]
+    );
+
+    const reassigned = next.assigned_to_email !== row.assigned_to_email;
+
+    const history = await client.query(
+      'SELECT status, changed_by_email, changed_by_kind, changed_at FROM action_status_history WHERE action_id = $1 ORDER BY changed_at ASC',
+      [actionId]
+    );
+
+    return {
+      action: toApiShape({ ...row, ...next, status: restoredStatus, cancel_reason: null }, history.rows),
+      reassigned
     };
   });
 }

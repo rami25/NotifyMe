@@ -1,0 +1,32 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <al-header-brand title="History"></al-header-brand>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="al-history-content">
+  @if (actionsService.finishedOrCancelled().length === 0) {
+    <div class="al-empty-state">
+      <ion-icon name="archive-outline"></ion-icon>
+      <h3>Nothing here yet</h3>
+      <p>Actions you finish or cancel will be archived here.</p>
+    </div>
+  } @else {
+    <div class="al-history-list">
+      @for (action of actionsService.finishedOrCancelled(); track action.id) {
+        <button class="al-history-row" type="button" (click)="openAction(action)">
+          <div>
+            <div class="al-history-top">
+              <h3>{{ action.title }}</h3>
+              <span class="al-status-chip status-{{ action.status }}">{{ action.status | titlecase }}</span>
+            </div>
+            <p>{{ action.customerName }} · {{ action.deadline | date:'MMM d, yyyy' }}</p>
+          </div>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+      }
+    </div>
+  }
+</ion-content>
+
+<al-bottom-nav [overdueCount]="actionsService.overdueCount()"></al-bottom-nav>

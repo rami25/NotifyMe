@@ -1,0 +1,68 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <al-header-brand title="Admin"></al-header-brand>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="al-admin-content">
+  @if (admin.loadingActions() && admin.actions().length === 0) {
+    <div class="al-stats-grid">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="al-stat-card al-skeleton">
+          <ion-skeleton-text [animated]="true" style="width: 40%; height: 24px;"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" style="width: 60%; height: 12px; margin-top: 8px;"></ion-skeleton-text>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="al-stats-grid">
+      <button class="al-stat-card" type="button" (click)="goToBoard('in_progress')">
+        <ion-icon name="time-outline" class="icon-blue"></ion-icon>
+        <span class="al-stat-value">{{ admin.activeCount() }}</span>
+        <span class="al-stat-label">Active</span>
+      </button>
+      <button class="al-stat-card" type="button" (click)="goToBoard('postponed')">
+        <ion-icon name="alert-circle-outline" class="icon-red"></ion-icon>
+        <span class="al-stat-value al-stat-danger">{{ admin.overdueCount() }}</span>
+        <span class="al-stat-label">Overdue</span>
+      </button>
+      <button class="al-stat-card" type="button" (click)="goToBoard('finished')">
+        <ion-icon name="checkmark-done-circle-outline" class="icon-green"></ion-icon>
+        <span class="al-stat-value">{{ admin.finishedCount() }}</span>
+        <span class="al-stat-label">Finished</span>
+      </button>
+      <button class="al-stat-card" type="button" (click)="goToUsers()">
+        <ion-icon name="people-outline" class="icon-blue"></ion-icon>
+        <span class="al-stat-value">{{ admin.activeEmployeeCount() }}</span>
+        <span class="al-stat-label">Active users</span>
+      </button>
+    </div>
+  }
+
+  <div class="al-quick-actions">
+    <button class="al-quick-btn al-quick-primary" type="button" (click)="goToNewAction()">
+      <ion-icon name="add-circle-outline"></ion-icon>
+      <span>New action</span>
+    </button>
+    <button class="al-quick-btn" type="button" (click)="goToBoard()">
+      <ion-icon name="list-outline"></ion-icon>
+      <span>All actions</span>
+    </button>
+    <button class="al-quick-btn" type="button" (click)="goToUsers()">
+      <ion-icon name="person-add-outline"></ion-icon>
+      <span>Manage users</span>
+    </button>
+  </div>
+
+  @if (admin.overdueCount() > 0) {
+    <div class="al-overdue-callout" (click)="goToBoard('postponed')">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <div>
+        <strong>{{ admin.overdueCount() }} action{{ admin.overdueCount() === 1 ? '' : 's' }} overdue</strong>
+        <p>Tap to review actions that passed their deadline.</p>
+      </div>
+    </div>
+  }
+</ion-content>
+
+<al-bottom-nav [overdueCount]="admin.overdueCount()"></al-bottom-nav>
