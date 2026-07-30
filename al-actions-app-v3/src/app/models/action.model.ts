@@ -8,6 +8,14 @@ export interface ActionStatusHistoryEntry {
   changedBy: string;       // email, or 'system' for the automatic overdue job
 }
 
+export interface ActionAttachment {
+  id: string;
+  fileName: string;
+  mimeType?: string;
+  fileSize?: number;
+  downloadUrl: string;
+}
+
 export interface FieldAction {
   id: string;
   title: string;
@@ -22,6 +30,7 @@ export interface FieldAction {
   createdAt: string;
   cancelReason?: string;
   statusHistory: ActionStatusHistoryEntry[];
+  attachments?: ActionAttachment[];
   distanceKm?: number;       // optional, populated when device location is available
 }
 

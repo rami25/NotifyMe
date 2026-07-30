@@ -4,6 +4,7 @@
 
 -- DROP TABLE IF EXISTS action_status_history CASCADE;
 -- DROP TABLE IF EXISTS actions CASCADE;
+-- DROP TABLE IF EXISTS action_attachments CASCADE;
 -- DROP TABLE IF EXISTS users CASCADE;
 
 -- DROP TYPE IF EXISTS changed_by_kind CASCADE;
@@ -51,6 +52,20 @@ CREATE TABLE actions (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE action_attachments (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  action_id    UUID NOT NULL REFERENCES actions(id) ON DELETE CASCADE,
+  file_name    TEXT NOT NULL,
+  storage_path TEXT,
+  mime_type    TEXT NOT NULL DEFAULT 'application/octet-stream',
+  file_size    BIGINT NOT NULL DEFAULT 0,
+  file_data    BYTEA NOT NULL,
+  uploaded_by  TEXT NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_action_attachments_action ON action_attachments (action_id);
 
 -- One upstream Sheet row must only ever create one action row.
 CREATE UNIQUE INDEX idx_actions_source_row_id

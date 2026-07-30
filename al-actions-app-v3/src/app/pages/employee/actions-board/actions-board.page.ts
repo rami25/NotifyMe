@@ -8,13 +8,13 @@ import {
   IonRefresher, IonRefresherContent
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { chevronForwardOutline, fileTrayOutline, addOutline } from 'ionicons/icons';
+import { chevronForwardOutline, addOutline } from 'ionicons/icons';
 import { ActionsService } from '../../../services/actions.service';
 import { HeaderBrandComponent } from '../../../shared/header-brand/header-brand.component';
 import { BottomNavComponent } from '../../../shared/bottom-nav/bottom-nav.component';
 import { ActionStatus, FieldAction } from '../../../models/action.model';
 
-addIcons({ chevronForwardOutline, fileTrayOutline, addOutline });
+addIcons({ chevronForwardOutline, addOutline });
 
 type StatusFilter = 'all' | ActionStatus;
 
@@ -40,7 +40,11 @@ export class EmployeeActionsBoardPage implements OnInit {
       .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
   });
 
-  constructor(public actionsService: ActionsService, private router: Router, private route: ActivatedRoute) {}
+  constructor(
+    public actionsService: ActionsService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit(): void {
     const presetStatus = this.route.snapshot.queryParamMap.get('status') as StatusFilter | null;

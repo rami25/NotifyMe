@@ -98,6 +98,55 @@
     <div class="al-detail-section">
       <h2 class="al-section-title">
         <ion-icon name="document-text-outline"></ion-icon>
+        Attachments
+      </h2>
+      @if (isActionable) {
+        <div class="al-attachment-picker">
+          <label class="al-attachment-add" for="attachment-input">
+            <ion-icon name="add-outline"></ion-icon>
+            Add file
+          </label>
+          <input id="attachment-input" type="file" multiple hidden (change)="onFilesSelected($event)" />
+          @if (selectedFiles().length > 0) {
+            <button class="al-btn al-btn-primary" type="button" [disabled]="uploadInProgress()" (click)="uploadSelectedFiles()">
+              <ion-icon name="cloud-upload-outline"></ion-icon>
+              Attach files
+            </button>
+          }
+        </div>
+      }
+
+      @if (selectedFiles().length > 0) {
+        <div class="al-attachment-list">
+          @for (file of selectedFiles(); track file.name) {
+            <div class="al-attachment-item">
+              <span>{{ file.name }}</span>
+              <button type="button" (click)="removeSelectedFile($index)">Remove</button>
+            </div>
+          }
+        </div>
+      }
+
+      @if (a.attachments?.length) {
+        <div class="al-attachment-list">
+          @for (attachment of a.attachments; track attachment.id) {
+            <div class="al-attachment-item">
+              <span>{{ attachment.fileName }}</span>
+              <button type="button" (click)="downloadAttachment(attachment)">
+                <ion-icon name="download-outline"></ion-icon>
+                Download
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="al-empty-hint">No files attached yet. This is optional.</p>
+      }
+    </div>
+
+    <div class="al-detail-section">
+      <h2 class="al-section-title">
+        <ion-icon name="document-text-outline"></ion-icon>
         History
       </h2>
       <div class="al-timeline">
@@ -112,6 +161,12 @@
         }
       </div>
     </div>
+
+    @if (isOverdue) {
+      <div class="al-detail-section">
+        <p class="al-empty-hint">This action is overdue and must become active again before it can be finished.</p>
+      </div>
+    }
 
     @if (showCancelForm()) {
       <div class="al-cancel-panel">
@@ -129,13 +184,15 @@
           <button class="al-btn al-btn-danger" type="button" [disabled]="busy()" (click)="submitCancel()">Confirm cancel</button>
         </div>
       </div>
-    } @else if (isActionable) {
+    } @else if (isActionable || isOverdue) {
       <div class="al-detail-actions">
         <button class="al-btn al-btn-outline-danger" type="button" [disabled]="busy()" (click)="showCancelForm.set(true)">
           <ion-icon name="close-circle-outline"></ion-icon>
           Cancel this action
         </button>
-        <button class="al-btn al-btn-primary" type="button" [disabled]="busy()" (click)="confirmFinish()">Finish</button>
+        @if (isActionable) {
+          <button class="al-btn al-btn-primary" type="button" [disabled]="busy()" (click)="confirmFinish()">Finish</button>
+        }
       </div>
     }
   }

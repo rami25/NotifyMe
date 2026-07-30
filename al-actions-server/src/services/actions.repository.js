@@ -7,7 +7,7 @@ const ACTION_COLUMNS = `
   created_at, updated_at
 `;
 
-function toApiShape(row, history = []) {
+function toApiShape(row, history = [], attachments = []) {
   return {
     id: row.id,
     title: row.title,
@@ -25,6 +25,13 @@ function toApiShape(row, history = []) {
       status: h.status,
       changedAt: h.changed_at,
       changedBy: h.changed_by_kind === 'system' ? 'system' : h.changed_by_email
+    })),
+    attachments: attachments.map(a => ({
+      id: a.id,
+      fileName: a.file_name,
+      mimeType: a.mime_type,
+      fileSize: a.file_size,
+      downloadUrl: `/api/actions/${row.id}/attachments/${a.id}/download`
     }))
   };
 }
@@ -36,6 +43,14 @@ function classifyByDeadline(deadlineIso) {
 async function fetchHistoryStandalone(actionId) {
   const { rows } = await query(
     'SELECT status, changed_by_email, changed_by_kind, changed_at FROM action_status_history WHERE action_id = $1 ORDER BY changed_at ASC',
+    [actionId]
+  );
+  return rows;
+}
+
+async function fetchAttachmentsStandalone(actionId) {
+  const { rows } = await query(
+    'SELECT id, file_name, mime_type, file_size FROM action_attachments WHERE action_id = $1 ORDER BY created_at ASC',
     [actionId]
   );
   return rows;
@@ -55,8 +70,11 @@ export async function listActionsForUser(user) {
   // with a single joined history query if the admin's full list grows large.
   const withHistory = await Promise.all(
     rows.map(async row => {
-      const history = await fetchHistoryStandalone(row.id);
-      return toApiShape(row, history);
+      const [history, attachments] = await Promise.all([
+        fetchHistoryStandalone(row.id),
+        fetchAttachmentsStandalone(row.id)
+      ]);
+      return toApiShape(row, history, attachments);
     })
   );
   return withHistory;
@@ -72,8 +90,11 @@ export async function getActionForUser(actionId, user) {
   const { rows } = await query(sql, params);
   if (!rows[0]) throw new HttpError(404, 'Action not found');
 
-  const history = await fetchHistoryStandalone(actionId);
-  return toApiShape(rows[0], history);
+  const [history, attachments] = await Promise.all([
+    fetchHistoryStandalone(actionId),
+    fetchAttachmentsStandalone(actionId)
+  ]);
+  return toApiShape(rows[0], history, attachments);
 }
 
 async function recordTransition(client, actionId, status, changedByEmail, changedByKind) {
@@ -93,7 +114,7 @@ async function loadActionRowForUpdate(client, actionId) {
 }
 
 /** Employee closes their own action. Only valid from in_progress/postponed. */
-export async function finishAction(actionId, employee) {
+export async function finishAction(actionId, employee, files = []) {
   return withTransaction(async client => {
     const row = await loadActionRowForUpdate(client, actionId);
     if (!row) throw new HttpError(404, 'Action not found');
@@ -107,12 +128,63 @@ export async function finishAction(actionId, employee) {
     await client.query(`UPDATE actions SET status = 'finished' WHERE id = $1`, [actionId]);
     await recordTransition(client, actionId, 'finished', employee.email, 'employee');
 
-    const history = await client.query(
-      'SELECT status, changed_by_email, changed_by_kind, changed_at FROM action_status_history WHERE action_id = $1 ORDER BY changed_at ASC',
-      [actionId]
-    );
-    return toApiShape({ ...row, status: 'finished' }, history.rows);
+    for (const file of files) {
+      await uploadActionAttachment(actionId, employee, file, client);
+    }
+
+    const [history, attachments] = await Promise.all([
+      client.query(
+        'SELECT status, changed_by_email, changed_by_kind, changed_at FROM action_status_history WHERE action_id = $1 ORDER BY changed_at ASC',
+        [actionId]
+      ),
+      client.query(
+        'SELECT id, file_name, mime_type, file_size FROM action_attachments WHERE action_id = $1 ORDER BY created_at ASC',
+        [actionId]
+      )
+    ]);
+
+    return toApiShape({ ...row, status: 'finished' }, history.rows, attachments.rows);
   });
+}
+
+export async function uploadActionAttachment(actionId, actor, file, client = null) {
+  const execute = client ? (sql, params) => client.query(sql, params) : (sql, params) => query(sql, params);
+
+  const { rows: existing } = await execute('SELECT id FROM actions WHERE id = $1', [actionId]);
+  if (!existing[0]) throw new HttpError(404, 'Action not found');
+
+  const { rows: ownerRows } = await execute('SELECT assigned_to_email FROM actions WHERE id = $1', [actionId]);
+  const isOwner = actor.role === 'admin' || actor.email === ownerRows[0]?.assigned_to_email;
+  if (!isOwner) {
+    throw new HttpError(403, 'You can only upload attachments for actions assigned to you');
+  }
+
+  const { rows } = await execute(
+    `INSERT INTO action_attachments (action_id, file_name, mime_type, file_size, file_data, uploaded_by)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, file_name, mime_type, file_size`,
+    [actionId, file.originalname, file.mimetype, file.size, file.buffer, actor.email]
+  );
+
+  return rows[0];
+}
+
+export async function getAttachmentById(attachmentId, actionId, user) {
+  const sql =
+    user.role === 'admin'
+      ? `SELECT a.id, a.file_name, a.mime_type, a.file_size, a.file_data
+         FROM action_attachments a
+         JOIN actions act ON act.id = a.action_id
+         WHERE a.id = $1 AND a.action_id = $2`
+      : `SELECT a.id, a.file_name, a.mime_type, a.file_size, a.file_data
+         FROM action_attachments a
+         JOIN actions act ON act.id = a.action_id
+         WHERE a.id = $1 AND a.action_id = $2 AND act.assigned_to_email = $3`;
+  const params = user.role === 'admin' ? [attachmentId, actionId] : [attachmentId, actionId, user.email];
+
+  const { rows } = await query(sql, params);
+  if (!rows[0]) throw new HttpError(404, 'Attachment not found');
+  return rows[0];
 }
 
 /** Either the assigned employee or an admin can cancel; caller passed in as `actor`. */

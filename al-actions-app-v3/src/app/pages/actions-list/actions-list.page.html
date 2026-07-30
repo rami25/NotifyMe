@@ -61,6 +61,9 @@
                 <span class="al-status-chip status-in_progress">Due soon</span>
               }
             </div>
+            @if (action.status === 'postponed') {
+              <p class="al-customer">Must become active again before it can be finished.</p>
+            }
             <p class="al-customer">{{ action.customerName }}</p>
             <div class="al-meta-row">
               <span class="al-meta">

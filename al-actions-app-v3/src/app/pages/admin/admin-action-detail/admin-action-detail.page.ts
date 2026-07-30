@@ -10,7 +10,8 @@ import { addIcons } from 'ionicons';
 import {
   locationOutline, timeOutline, personOutline, pricetagOutline,
   closeCircleOutline, documentTextOutline, mailOutline,
-  createOutline, trashOutline, copyOutline, refreshOutline
+  createOutline, trashOutline, copyOutline, refreshOutline,
+  addOutline, cloudUploadOutline, downloadOutline
 } from 'ionicons/icons';
 import { AdminService } from '../../../services/admin.service';
 import { FieldAction } from '../../../models/action.model';
@@ -19,7 +20,8 @@ import { HeaderBrandComponent } from '../../../shared/header-brand/header-brand.
 addIcons({
   locationOutline, timeOutline, personOutline, pricetagOutline,
   closeCircleOutline, documentTextOutline, mailOutline,
-  createOutline, trashOutline, copyOutline, refreshOutline
+  createOutline, trashOutline, copyOutline, refreshOutline,
+  addOutline, cloudUploadOutline, downloadOutline
 });
 
 @Component({
@@ -39,6 +41,8 @@ export class AdminActionDetailPage implements OnInit {
   showCancelForm = signal(false);
   cancelReason = signal('');
   busy = signal(false);
+  selectedFiles = signal<File[]>([]);
+  uploadInProgress = signal(false);
 
   constructor(
     private route: ActivatedRoute,
@@ -87,6 +91,44 @@ export class AdminActionDetailPage implements OnInit {
       await this.toast("Couldn't cancel the action. Try again.", 'danger');
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  onFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    if (files.length) {
+      this.selectedFiles.update(existing => [...existing, ...files]);
+    }
+    input.value = '';
+  }
+
+  removeSelectedFile(index: number): void {
+    this.selectedFiles.update(list => list.filter((_, i) => i !== index));
+  }
+
+  async uploadSelectedFiles(): Promise<void> {
+    const a = this.action();
+    if (!a || this.selectedFiles().length === 0) return;
+
+    this.uploadInProgress.set(true);
+    try {
+      await this.admin.uploadAttachments(a.id, this.selectedFiles());
+      this.selectedFiles.set([]);
+      this.action.set(this.admin.getActionById(a.id));
+      await this.toast('Files attached successfully.', 'success');
+    } catch {
+      await this.toast("Couldn't upload the files. Try again.", 'danger');
+    } finally {
+      this.uploadInProgress.set(false);
+    }
+  }
+
+  async downloadAttachment(attachment: { downloadUrl: string; fileName: string }): Promise<void> {
+    try {
+      await this.admin.downloadAttachment(attachment.downloadUrl, attachment.fileName);
+    } catch {
+      await this.toast('Could not download this file.', 'danger');
     }
   }
 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler, HttpError } from '../utils/asyncHandler.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { upload } from '../middleware/upload.js';
 import {
   listActionsForUser,
   getActionForUser,
@@ -10,7 +11,9 @@ import {
   updateAction,
   duplicateAction,
   restoreAction,
-  deleteAction
+  deleteAction,
+  uploadActionAttachment,
+  getAttachmentById
 } from '../services/actions.repository.js';
 import { findByEmail, getPushToken } from '../services/users.repository.js';
 import {
@@ -243,14 +246,47 @@ actionsRouter.delete(
 /** Employee closes their own action. Notifies every admin by email. */
 actionsRouter.post(
   '/:id/finish',
+  upload.array('attachments', 5),
   asyncHandler(async (req, res) => {
-    const action = await finishAction(req.params.id, req.user);
+    const files = Array.isArray(req.files) ? req.files : [];
+    const action = await finishAction(req.params.id, req.user, files);
+
     notifyAdminsActionFinished({
       title: action.title,
       customer_name: action.customerName,
       assigned_to_email: action.assignedToEmail
     });
     res.json(action);
+  })
+);
+
+actionsRouter.post(
+  '/:id/attachments',
+  upload.array('attachments', 5),
+  asyncHandler(async (req, res) => {
+    const files = Array.isArray(req.files) ? req.files : [];
+    if (files.length === 0) {
+      throw new HttpError(400, 'At least one attachment is required');
+    }
+
+    const saved = [];
+    for (const file of files) {
+      const attachment = await uploadActionAttachment(req.params.id, req.user, file);
+      saved.push(attachment);
+    }
+
+    res.status(201).json({ uploaded: saved });
+  })
+);
+
+actionsRouter.get(
+  '/:id/attachments/:attachmentId/download',
+  asyncHandler(async (req, res) => {
+    const attachment = await getAttachmentById(req.params.attachmentId, req.params.id, req.user);
+    res.setHeader('Content-Type', attachment.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Length', attachment.file_size);
+    res.setHeader('Content-Disposition', `attachment; filename="${attachment.file_name}"`);
+    res.send(attachment.file_data);
   })
 );
 

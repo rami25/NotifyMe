@@ -164,7 +164,8 @@ export class EmployeeActionFormPage implements OnInit {
       }
 
       await this.toast(`"${result.title}" ${this.copy.successVerb}.`, 'success');
-      this.router.navigate(['/employee/actions', result.id], { replaceUrl: true });
+    //  this.router.navigate(['/employee/actions', result.id], { replaceUrl: true });
+      this.router.navigate(['/employee/actions'], { replaceUrl: true });
     } catch (err: any) {
       this.errorMessage.set(err?.error?.error || "Couldn't save the action. Check the details and try again.");
     } finally {

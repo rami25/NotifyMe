@@ -14,7 +14,7 @@ export class ActionsService {
   readonly loading = this._loading.asReadonly();
   readonly actions = this._actions.asReadonly();
 
-  /** The employee's active plan: in_progress + postponed, sorted by deadline then priority. */
+  /** The employee's plan list: active and overdue actions remain visible for the employee. */
   readonly plan = computed(() =>
     this._actions()
       .filter(a => a.status === 'in_progress' || a.status === 'postponed')
@@ -36,6 +36,18 @@ export class ActionsService {
   );
 
   constructor(private http: HttpClient) {}
+
+  // Listen for global action-list changes (admin-side edits) and refresh
+  // the employee's plan so UI stays in sync across admin/employee flows.
+  private _globalListener = (() => {
+    try {
+      const handler = () => { this.loadMyActions().catch(() => {}); };
+      window.addEventListener('actions:changed', handler);
+      return { remove: () => window.removeEventListener('actions:changed', handler) };
+    } catch {
+      return { remove: () => {} };
+    }
+  })();
 
   async loadMyActions(): Promise<void> {
     this._loading.set(true);
@@ -104,11 +116,66 @@ export class ActionsService {
     this._actions.update(list => list.filter(a => a.id !== id));
   }
 
-  async finish(id: string): Promise<void> {
-    const updated = await firstValueFrom(
-      this.http.post<FieldAction>(`${environment.apiBaseUrl}/actions/${id}/finish`, {})
-    );
+  async finish(id: string, attachments: File[] = []): Promise<void> {
+    let updated: FieldAction;
+
+    if (attachments.length > 0) {
+      const formData = new FormData();
+      attachments.forEach(file => formData.append('attachments', file, file.name));
+      updated = await firstValueFrom(
+        this.http.post<FieldAction>(`${environment.apiBaseUrl}/actions/${id}/finish`, formData)
+      );
+    } else {
+      updated = await firstValueFrom(
+        this.http.post<FieldAction>(`${environment.apiBaseUrl}/actions/${id}/finish`, {})
+      );
+    }
+
     this.patchLocal(updated);
+  }
+
+  async uploadAttachments(id: string, attachments: File[]): Promise<void> {
+    if (attachments.length === 0) return;
+
+    const formData = new FormData();
+    attachments.forEach(file => formData.append('attachments', file, file.name));
+    const saved = await firstValueFrom(
+      this.http.post<{ uploaded: Array<{ id: string; fileName: string; mimeType: string; fileSize: number }> }>(
+        `${environment.apiBaseUrl}/actions/${id}/attachments`,
+        formData
+      )
+    );
+
+    const current = this.getById(id);
+    if (!current) return;
+
+    const nextAttachments = [
+      ...(current.attachments ?? []),
+      ...saved.uploaded.map(item => ({
+        id: item.id,
+        fileName: item.fileName,
+        mimeType: item.mimeType,
+        fileSize: item.fileSize,
+        downloadUrl: `${environment.apiBaseUrl}/actions/${id}/attachments/${item.id}/download`
+      }))
+    ];
+
+    this.patchLocal({ ...current, attachments: nextAttachments } as FieldAction);
+  }
+
+  async downloadAttachment(url: string, fileName: string): Promise<void> {
+    const resolvedUrl = url.startsWith('http')
+      ? url
+      : url.startsWith('/api')
+      ? `${new URL(environment.apiBaseUrl).origin}${url}`
+      : `${environment.apiBaseUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+    const response = await firstValueFrom(this.http.get(resolvedUrl, { responseType: 'blob' }));
+    const blob = new Blob([response], { type: response.type || 'application/octet-stream' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
   async cancel(id: string, payload: CancelActionPayload): Promise<void> {

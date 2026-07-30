@@ -41,6 +41,8 @@ export class AdminService {
         this.http.get<FieldAction[]>(`${environment.apiBaseUrl}/actions`)
       );
       this._actions.set(data);
+      // Notify other parts of the app that the global actions list changed
+      try { window.dispatchEvent(new CustomEvent('actions:changed')); } catch {}
     } finally {
       this._loadingActions.set(false);
     }
@@ -82,6 +84,7 @@ export class AdminService {
       this.http.post<FieldAction>(`${environment.apiBaseUrl}/actions`, payload)
     );
     this._actions.update(list => [created, ...list]);
+    try { window.dispatchEvent(new CustomEvent('actions:changed')); } catch {}
     return created;
   }
 
@@ -91,6 +94,7 @@ export class AdminService {
       this.http.post<FieldAction>(`${environment.apiBaseUrl}/actions/${id}/cancel`, { reason })
     );
     this._actions.update(list => list.map(a => (a.id === updated.id ? updated : a)));
+    try { window.dispatchEvent(new CustomEvent('actions:changed')); } catch {}
   }
 
   /**
@@ -104,6 +108,7 @@ export class AdminService {
       this.http.patch<FieldAction>(`${environment.apiBaseUrl}/actions/${id}`, payload)
     );
     this._actions.update(list => list.map(a => (a.id === updated.id ? updated : a)));
+    try { window.dispatchEvent(new CustomEvent('actions:changed')); } catch {}
     return updated;
   }
 
@@ -119,6 +124,7 @@ export class AdminService {
       this.http.post<FieldAction>(`${environment.apiBaseUrl}/actions/${sourceId}/duplicate`, payload)
     );
     this._actions.update(list => [created, ...list]);
+    try { window.dispatchEvent(new CustomEvent('actions:changed')); } catch {}
     return created;
   }
 
@@ -133,6 +139,7 @@ export class AdminService {
       this.http.post<FieldAction>(`${environment.apiBaseUrl}/actions/${id}/restore`, payload)
     );
     this._actions.update(list => list.map(a => (a.id === restored.id ? restored : a)));
+    try { window.dispatchEvent(new CustomEvent('actions:changed')); } catch {}
     return restored;
   }
 
@@ -140,6 +147,52 @@ export class AdminService {
   async deleteAction(id: string): Promise<void> {
     await firstValueFrom(this.http.delete<void>(`${environment.apiBaseUrl}/actions/${id}`));
     this._actions.update(list => list.filter(a => a.id !== id));
+    try { window.dispatchEvent(new CustomEvent('actions:changed')); } catch {}
+  }
+
+  async uploadAttachments(id: string, attachments: File[]): Promise<void> {
+    if (attachments.length === 0) return;
+
+    const formData = new FormData();
+    attachments.forEach(file => formData.append('attachments', file, file.name));
+    const saved = await firstValueFrom(
+      this.http.post<{ uploaded: Array<{ id: string; fileName: string; mimeType: string; fileSize: number }> }>(
+        `${environment.apiBaseUrl}/actions/${id}/attachments`,
+        formData
+      )
+    );
+
+    const current = this.getActionById(id);
+    if (!current) return;
+
+    const nextAttachments = [
+      ...(current.attachments ?? []),
+      ...saved.uploaded.map(item => ({
+        id: item.id,
+        fileName: item.fileName,
+        mimeType: item.mimeType,
+        fileSize: item.fileSize,
+        downloadUrl: `${environment.apiBaseUrl}/actions/${id}/attachments/${item.id}/download`
+      }))
+    ];
+
+    this._actions.update(list => list.map(a => (a.id === id ? { ...a, attachments: nextAttachments } : a)));
+    try { window.dispatchEvent(new CustomEvent('actions:changed')); } catch {}
+  }
+
+  async downloadAttachment(url: string, fileName: string): Promise<void> {
+    const resolvedUrl = url.startsWith('http')
+      ? url
+      : url.startsWith('/api')
+      ? `${new URL(environment.apiBaseUrl).origin}${url}`
+      : `${environment.apiBaseUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+    const response = await firstValueFrom(this.http.get(resolvedUrl, { responseType: 'blob' }));
+    const blob = new Blob([response], { type: response.type || 'application/octet-stream' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
   async setUserActive(email: string, active: boolean): Promise<void> {

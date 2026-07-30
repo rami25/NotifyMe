@@ -193,7 +193,8 @@ export class AdminActionFormPage implements OnInit {
       }
 
       await this.toast(`"${result.title}" ${this.copy.successVerb}.`, 'success');
-      this.router.navigate(['/admin/actions', result.id], { replaceUrl: true });
+    //   this.router.navigate(['/admin/actions', result.id], { replaceUrl: true });
+      this.router.navigate(['/admin/actions'], { replaceUrl: true });
     } catch (err: any) {
       // The backend's 409s (e.g. "Only cancelled actions can be restored")
       // are readable on their own — surface them directly when present.

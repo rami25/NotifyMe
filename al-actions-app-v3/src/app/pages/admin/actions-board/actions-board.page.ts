@@ -1,5 +1,5 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit, OnDestroy, computed, signal } from '@angular/core';
+import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -50,6 +50,8 @@ export class AdminActionsBoardPage implements OnInit {
       .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
   });
 
+  private _routerSub: any;
+
   constructor(public admin: AdminService, private router: Router, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
@@ -59,6 +61,18 @@ export class AdminActionsBoardPage implements OnInit {
     if (this.admin.actions().length === 0) {
       this.admin.loadAllActions();
     }
+
+    // Refresh actions whenever the admin actions route becomes active so
+    // edits performed in other admin screens are reflected immediately.
+    this._routerSub = this.router.events.subscribe(evt => {
+      if (evt instanceof NavigationEnd && this.router.url.startsWith('/admin/actions')) {
+        this.admin.loadAllActions();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this._routerSub?.unsubscribe?.();
   }
 
   async handleRefresh(event: any): Promise<void> {
