@@ -10,7 +10,7 @@ import { addIcons } from 'ionicons';
 import {
   locationOutline, timeOutline, personOutline, pricetagOutline,
   checkmarkCircleOutline, closeCircleOutline, documentTextOutline,
-  addOutline, cloudUploadOutline, downloadOutline
+  addOutline, cloudUploadOutline, downloadOutline, trashOutline
 } from 'ionicons/icons';
 import { ActionsService } from '../../services/actions.service';
 import { FieldAction } from '../../models/action.model';
@@ -19,7 +19,7 @@ import { HeaderBrandComponent } from '../../shared/header-brand/header-brand.com
 addIcons({
   locationOutline, timeOutline, personOutline, pricetagOutline,
   checkmarkCircleOutline, closeCircleOutline, documentTextOutline,
-  addOutline, cloudUploadOutline, downloadOutline
+  addOutline, cloudUploadOutline, downloadOutline, trashOutline
 });
 
 @Component({
@@ -130,6 +130,19 @@ export class ActionDetailPage implements OnInit {
       await this.actionsService.downloadAttachment(attachment.downloadUrl, attachment.fileName);
     } catch {
       await this.showToast('Could not download this file.', 'danger');
+    }
+  }
+
+  async removeAttachment(actionId: string, attachmentId: string): Promise<void> {
+    const a = this.action();
+    if (!a) return;
+
+    try {
+      await this.actionsService.deleteAttachment(actionId, attachmentId);
+      this.action.set(this.actionsService.getById(actionId));
+      await this.showToast('Attachment removed.', 'medium');
+    } catch {
+      await this.showToast("Couldn't remove the attachment. Try again.", 'danger');
     }
   }
 

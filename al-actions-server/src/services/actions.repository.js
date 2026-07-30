@@ -187,6 +187,23 @@ export async function getAttachmentById(attachmentId, actionId, user) {
   return rows[0];
 }
 
+export async function deleteAttachmentById(actionId, attachmentId, actor) {
+  const { rows: ownerRows } = await query('SELECT assigned_to_email FROM actions WHERE id = $1', [actionId]);
+  if (!ownerRows[0]) throw new HttpError(404, 'Action not found');
+
+  const isOwner = actor.role === 'admin' || actor.email === ownerRows[0].assigned_to_email;
+  if (!isOwner) {
+    throw new HttpError(403, 'You can only delete attachments for actions assigned to you');
+  }
+
+  const { rows } = await query(
+    'DELETE FROM action_attachments WHERE id = $1 AND action_id = $2 RETURNING id',
+    [attachmentId, actionId]
+  );
+  if (!rows[0]) throw new HttpError(404, 'Attachment not found');
+  return rows[0];
+}
+
 /** Either the assigned employee or an admin can cancel; caller passed in as `actor`. */
 export async function cancelAction(actionId, actor, reason) {
   return withTransaction(async client => {

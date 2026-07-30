@@ -195,6 +195,21 @@ export class AdminService {
     URL.revokeObjectURL(link.href);
   }
 
+  async deleteAttachment(actionId: string, attachmentId: string): Promise<void> {
+    await firstValueFrom(
+      this.http.delete(`${environment.apiBaseUrl}/actions/${actionId}/attachments/${attachmentId}`)
+    );
+    const current = this.getActionById(actionId);
+    if (!current) return;
+    this._actions.update(list =>
+      list.map(a =>
+        a.id === actionId
+          ? { ...a, attachments: (a.attachments ?? []).filter(att => att.id !== attachmentId) }
+          : a
+      )
+    );
+  }
+
   async setUserActive(email: string, active: boolean): Promise<void> {
     const updated = await firstValueFrom(
       this.http.patch<AppUser>(`${environment.apiBaseUrl}/users/${encodeURIComponent(email)}/active`, { active })

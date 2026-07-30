@@ -134,6 +134,19 @@ export class EmployeeActionDetailPage implements OnInit {
     }
   }
 
+  async removeAttachment(actionId: string, attachmentId: string): Promise<void> {
+    const a = this.action();
+    if (!a) return;
+
+    try {
+      await this.actionsService.deleteAttachment(actionId, attachmentId);
+      this.action.set(this.actionsService.getById(actionId));
+      await this.showToast('Attachment removed.', 'medium');
+    } catch {
+      await this.showToast("Couldn't remove the attachment. Try again.", 'danger');
+    }
+  }
+
   async submitCancel(): Promise<void> {
     const a = this.action();
     if (!a) return;

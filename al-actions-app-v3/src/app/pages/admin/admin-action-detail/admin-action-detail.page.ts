@@ -132,6 +132,19 @@ export class AdminActionDetailPage implements OnInit {
     }
   }
 
+  async removeAttachment(actionId: string, attachmentId: string): Promise<void> {
+    const a = this.action();
+    if (!a) return;
+
+    try {
+      await this.admin.deleteAttachment(actionId, attachmentId);
+      this.action.set(this.admin.getActionById(actionId));
+      await this.toast('Attachment removed.', 'medium');
+    } catch {
+      await this.toast("Couldn't remove the attachment. Try again.", 'danger');
+    }
+  }
+
   /**
    * Point 5 in the reported issues: admin previously had no way to
    * remove an action at all. Requires explicit confirmation since it's

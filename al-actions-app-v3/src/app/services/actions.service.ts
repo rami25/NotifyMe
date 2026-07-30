@@ -178,6 +178,18 @@ export class ActionsService {
     URL.revokeObjectURL(link.href);
   }
 
+  async deleteAttachment(actionId: string, attachmentId: string): Promise<void> {
+    await firstValueFrom(
+      this.http.delete(`${environment.apiBaseUrl}/actions/${actionId}/attachments/${attachmentId}`)
+    );
+    const current = this.getById(actionId);
+    if (!current) return;
+    this.patchLocal({
+      ...current,
+      attachments: (current.attachments ?? []).filter(a => a.id !== attachmentId)
+    } as FieldAction);
+  }
+
   async cancel(id: string, payload: CancelActionPayload): Promise<void> {
     const updated = await firstValueFrom(
       this.http.post<FieldAction>(`${environment.apiBaseUrl}/actions/${id}/cancel`, payload)

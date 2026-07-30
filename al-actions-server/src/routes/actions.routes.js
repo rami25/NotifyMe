@@ -13,7 +13,8 @@ import {
   restoreAction,
   deleteAction,
   uploadActionAttachment,
-  getAttachmentById
+  getAttachmentById,
+  deleteAttachmentById
 } from '../services/actions.repository.js';
 import { findByEmail, getPushToken } from '../services/users.repository.js';
 import {
@@ -287,6 +288,14 @@ actionsRouter.get(
     res.setHeader('Content-Length', attachment.file_size);
     res.setHeader('Content-Disposition', `attachment; filename="${attachment.file_name}"`);
     res.send(attachment.file_data);
+  })
+);
+
+actionsRouter.delete(
+  '/:id/attachments/:attachmentId',
+  asyncHandler(async (req, res) => {
+    await deleteAttachmentById(req.params.id, req.params.attachmentId, req.user);
+    res.status(204).end();
   })
 );
 

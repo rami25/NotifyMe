@@ -128,8 +128,11 @@
           <div class="al-attachment-list">
             @for (file of selectedFiles(); track file.name) {
               <div class="al-attachment-item">
-                <span>{{ file.name }}</span>
-                <button type="button" (click)="removeSelectedFile($index)">Remove</button>
+                <span class="al-attachment-name">{{ file.name }}</span>
+                <button class="al-attachment-remove" type="button" (click)="removeSelectedFile($index)">
+                  <ion-icon name="close-circle-outline"></ion-icon>
+                  Remove
+                </button>
               </div>
             }
           </div>
@@ -139,11 +142,19 @@
           <div class="al-attachment-list">
             @for (attachment of a.attachments; track attachment.id) {
               <div class="al-attachment-item">
-                <span>{{ attachment.fileName }}</span>
-                <button type="button" (click)="downloadAttachment(attachment)">
-                  <ion-icon name="download-outline"></ion-icon>
-                  Download
-                </button>
+                <span class="al-attachment-name">{{ attachment.fileName }}</span>
+                <div class="al-attachment-actions">
+                  <button class="al-attachment-download" type="button" (click)="downloadAttachment(attachment)">
+                    <ion-icon name="download-outline"></ion-icon>
+                    Download
+                  </button>
+                  @if (a.status !== 'finished') {
+                    <button class="al-attachment-remove" type="button" (click)="removeAttachment(a.id, attachment.id)">
+                      <ion-icon name="trash-outline"></ion-icon>
+                      Remove
+                    </button>
+                  }
+                </div>
               </div>
             }
           </div>

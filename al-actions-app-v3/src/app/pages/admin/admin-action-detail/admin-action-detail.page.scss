@@ -220,6 +220,79 @@
   }
 }
 
+.al-attachment-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.al-attachment-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--al-surface);
+  color: var(--al-blue);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.al-attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.al-attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--al-surface);
+  border: 1px solid var(--al-hairline);
+}
+
+.al-attachment-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--al-ink);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.al-attachment-remove,
+.al-attachment-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid var(--al-hairline);
+  color: var(--al-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.al-attachment-remove {
+  color: var(--al-red);
+  border-color: rgba(215, 0, 30, 0.18);
+}
+
+.al-attachment-download {
+  background: var(--al-white);
+}
+
 .al-cancel-actions {
   display: flex;
   gap: 10px;
