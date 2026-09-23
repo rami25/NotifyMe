@@ -160,4 +160,52 @@ export class AuthService {
       google.accounts.id.prompt();
     });
   }
+private signInWithGoogleWeb0(): Promise<{ ok: true } | { ok: false; message: string }> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result: { ok: true } | { ok: false; message: string }) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    // @ts-ignore
+    google.accounts.id.initialize({
+      client_id: environment.googleWebClientId,
+      callback: async (response: any) => {
+        const idToken = response.credential;
+        try {
+          const res = await firstValueFrom(
+            this.http.post<{ token: string; user: AppUser }>(
+              `${environment.apiBaseUrl}/auth/google`,
+              { idToken }
+            )
+          );
+          if (!res.user.active) {
+            finish({ ok: false, message: 'Your account has been deactivated. Contact an admin.' });
+            return;
+          }
+          localStorage.setItem(SESSION_KEY, res.token);
+          this.currentUser.set(res.user);
+          finish({ ok: true });
+        } catch {
+          finish({ ok: false, message: "Couldn't reach the server. Check your connection and try again." });
+        }
+      }
+    });
+
+    // @ts-ignore
+    google.accounts.id.prompt((notification: any) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // FedCM blocked or throttled — fall back to the visible button flow
+        // instead of leaving the caller waiting on a prompt that will never show.
+        finish({ ok: false, message: 'Use the Google button below to sign in.' });
+      }
+    });
+
+    // Belt-and-suspenders: some FedCM failure modes don't reliably fire the
+    // moment callback either. Don't let the UI hang past a few seconds.
+    setTimeout(() => finish({ ok: false, message: 'Sign-in timed out. Please try again.' }), 6000);
+  });
+}
 }

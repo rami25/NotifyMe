@@ -30,7 +30,7 @@ async function resolveAssigneeEmail(rawValue) {
   } else {
     // domain\username -> derive the @airliquide.com address
     adUsername = (value.includes('\\') ? value.split('\\').pop() : value).toLowerCase();
-    email = `${adUsername}@${config.allowedGoogleDomain}`.toLowerCase();
+    email = `${adUsername}_@${config.allowedGoogleDomain}`.toLowerCase();
   }
 
   const { rows: existing } = await query(
@@ -75,10 +75,12 @@ export async function syncOnce() {
   }
   const summary = { seen: rows.length, inserted: 0, skippedExisting: 0, skippedInvalid: 0 };
 
-  let i = 1; // just for debugging
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  let i = 0; // just for debugging
   for (const row of rows) {
-    if (i > 10) break;
-    console.log("new___id", i);
+    if (i >= 10) break;
+    // await sleep(100);
     i += 1;
     const rowId        = row[0];   // N°
     const title        = row[1];   // ACTION
@@ -107,6 +109,7 @@ export async function syncOnce() {
     // 3. Resolve and format relational data types
     const assignedToEmail = await resolveAssigneeEmail(assignedRaw);
     const deadline = parseDeadline(deadlineRaw);
+    console.log(i, "new action assigned to", assignedToEmail);
 
     if (!assignedToEmail || !deadline) {
       summary.skippedInvalid++;
@@ -144,14 +147,16 @@ export async function syncOnce() {
   return summary;
 }
 
-export function startSheetSyncPolling() {
+export async function startSheetSyncPolling() {
   if (!config.googleSheets.sheetId || !config.googleSheets.serviceAccountPath) {
     console.log('Sheet sync not configured (GOOGLE_SHEETS_ID / service account missing) — skipping.');
     return;
   }
 
-  const intervalMs = config.googleSheets.syncIntervalMinutes * 60 * 1000;
-  console.log(`Sheet sync polling every ${config.googleSheets.syncIntervalMinutes} minute(s).`);
+  const intervalMs = config.googleSheets.syncIntervalMinutes * 3 * 1000;
+//   console.log(`Sheet sync polling every ${config.googleSheets.syncIntervalMinutes} minute(s).`);
+  console.log('Sheet sync polling...');
+  console.log('PCA Assigment Actions');
 
   const run = async () => {
     try {
@@ -163,7 +168,9 @@ export function startSheetSyncPolling() {
       console.error('Sheet sync failed:', err.message);
     }
   };
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+  await sleep(intervalMs); 
   run();
-  setInterval(run, intervalMs);
+//   setInterval(run, intervalMs);
 }
