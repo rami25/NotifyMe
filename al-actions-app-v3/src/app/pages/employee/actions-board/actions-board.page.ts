@@ -36,7 +36,7 @@ export class EmployeeActionsBoardPage implements OnInit {
     return this.actionsService
       .actions()
       .filter(a => status === 'all' || a.status === status)
-      .filter(a => !term || a.title.toLowerCase().includes(term) || a.customerName.toLowerCase().includes(term))
+      .filter(a => !term || a.title.toLowerCase().includes(term) || a.customerName.toLowerCase().includes(term) || a.address.toLowerCase().includes(term))
       .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
   });
 

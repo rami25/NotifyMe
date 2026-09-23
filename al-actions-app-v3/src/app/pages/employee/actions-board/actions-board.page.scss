@@ -83,6 +83,13 @@
   font-size: 12px;
 }
 
+.al-board-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .al-chevron {
   color: var(--al-ink-soft);
 }

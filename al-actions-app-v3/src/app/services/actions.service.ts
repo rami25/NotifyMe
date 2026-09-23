@@ -19,6 +19,12 @@ export class ActionsService {
     this._actions()
       .filter(a => a.status === 'in_progress' || a.status === 'postponed')
       .sort((a, b) => {
+        const statusOrder = a.status === 'in_progress' && b.status === 'postponed' ? -1
+          : a.status === 'postponed' && b.status === 'in_progress' ? 1
+          : 0;
+
+        if (statusOrder !== 0) return statusOrder;
+
         const byDeadline = new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
         if (byDeadline !== 0) return byDeadline;
         return PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority];

@@ -19,14 +19,24 @@
 
   <div class="al-date-filter">
     <ion-item lines="none" class="al-date-item">
-      <ion-label position="stacked">Show actions from</ion-label>
+      <ion-label position="stacked">From</ion-label>
       <ion-input
         type="date"
-        [value]="selectedDate()"
-        (ionInput)="selectedDate.set($any($event.target).value || '')">
+        [value]="selectedFromDate()"
+        (ionInput)="selectedFromDate.set($any($event.target).value || '')">
       </ion-input>
     </ion-item>
-    @if (selectedDate()) {
+
+    <ion-item lines="none" class="al-date-item">
+      <ion-label position="stacked">To</ion-label>
+      <ion-input
+        type="date"
+        [value]="selectedToDate()"
+        (ionInput)="selectedToDate.set($any($event.target).value || '')">
+      </ion-input>
+    </ion-item>
+
+    @if (selectedFromDate() || selectedToDate()) {
       <button class="al-clear-btn" type="button" (click)="clearDateFilter()">Clear</button>
     }
   </div>

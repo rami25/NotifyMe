@@ -27,21 +27,33 @@ addIcons({ chevronForwardOutline, fileTrayOutline, locationOutline, timeOutline 
   styleUrl: './actions-list.page.scss'
 })
 export class ActionsListPage implements OnInit {
-  readonly selectedDate = signal<string>('');
+  readonly selectedFromDate = signal<string>('');
+  readonly selectedToDate = signal<string>('');
 
   readonly filteredPlan = computed(() => {
-    const date = this.selectedDate().trim();
+    const fromDateValue = this.selectedFromDate().trim();
+    const toDateValue = this.selectedToDate().trim();
     const base = this.actionsService.plan();
 
-    if (!date) return base;
-
-    const selected = new Date(`${date}T00:00:00`);
-    selected.setHours(0, 0, 0, 0);
+    if (!fromDateValue && !toDateValue) return base;
 
     return base.filter(action => {
       const deadline = new Date(action.deadline);
       deadline.setHours(0, 0, 0, 0);
-      return deadline.getTime() >= selected.getTime();
+
+      if (fromDateValue) {
+        const fromDate = new Date(`${fromDateValue}T00:00:00`);
+        fromDate.setHours(0, 0, 0, 0);
+        if (deadline.getTime() < fromDate.getTime()) return false;
+      }
+
+      if (toDateValue) {
+        const toDate = new Date(`${toDateValue}T00:00:00`);
+        toDate.setHours(0, 0, 0, 0);
+        if (deadline.getTime() > toDate.getTime()) return false;
+      }
+
+      return true;
     });
   });
 
@@ -66,6 +78,7 @@ export class ActionsListPage implements OnInit {
   }
 
   clearDateFilter(): void {
-    this.selectedDate.set('');
+    this.selectedFromDate.set('');
+    this.selectedToDate.set('');
   }
 }

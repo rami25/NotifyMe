@@ -4,7 +4,7 @@
   </ion-toolbar>
   <ion-toolbar>
     <ion-searchbar
-      placeholder="Search title or customer…"
+      placeholder="Search title, customer or address…"
       [debounce]="200"
       (ionInput)="searchTerm.set($any($event).detail.value || '')">
     </ion-searchbar>
@@ -58,8 +58,10 @@
             <p class="al-board-meta">
               {{ action.customerName }}
             </p>
-            <p class="al-board-meta">
-              Due {{ action.deadline | date:'MMM d, HH:mm' }}
+            <p class="al-board-meta al-board-meta-row">
+              <span>{{ action.address }}</span>
+              <span>·</span>
+              <span>Due {{ action.deadline | date:'MMM d, HH:mm' }}</span>
             </p>
           </div>
           <ion-icon class="al-chevron" name="chevron-forward-outline"></ion-icon>
